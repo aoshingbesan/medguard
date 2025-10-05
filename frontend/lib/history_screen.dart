@@ -45,81 +45,99 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('History'),
-        actions: [
-          IconButton(
-            tooltip: 'Clear history',
-            onPressed: () async {
-              final ok = await showDialog<bool>(
-                context: context,
-                builder: (c) => AlertDialog(
-                  title: const Text('Clear history?'),
-                  content: const Text('This will remove all saved scan records.'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                    FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Clear')),
-                  ],
-                ),
-              );
-              if (ok == true) {
-                await HistoryStorage.clear();
-                await _load();
-              }
-            },
-            icon: const Icon(Icons.delete_sweep_rounded),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          itemCount: _items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, i) {
-            final it = _items[i];
-            final statusColor = it.verified ? kSuccess : kDanger;
-            final statusText = it.verified ? 'Verified' : 'Not Verified';
-            return Card(
-              elevation: 0,
-              color: Colors.white,
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                title: Text(it.brand, style: t.titleMedium),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4),
+      body: Column(
+        children: [
+          // Custom header with same styling as pharmacies screen
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
                   child: Text(
-                    [
-                      'GTIN: ${it.gtin}',
-                      if (it.lot != null && it.lot!.isNotEmpty) 'Lot: ${it.lot}',
-                      _fmtTime(it.scannedAt),
-                    ].join(' • '),
-                    style: t.bodyMedium?.copyWith(color: kTextSecondary),
-                  ),
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withOpacity(0.35)),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: t.bodyMedium?.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.w600,
+                    'History',
+                    style: t.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: kBrandPrimary,
                     ),
                   ),
                 ),
-                onTap: () {
-                  // TODO: Navigate to details page if needed
+                IconButton(
+                  tooltip: 'Clear history',
+                  onPressed: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: const Text('Clear history?'),
+                        content: const Text('This will remove all saved scan records.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Clear')),
+                        ],
+                      ),
+                    );
+                    if (ok == true) {
+                      await HistoryStorage.clear();
+                      await _load();
+                    }
+                  },
+                  icon: const Icon(Icons.delete_sweep_rounded),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                itemCount: _items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, i) {
+                  final it = _items[i];
+                  final statusColor = it.verified ? kSuccess : kDanger;
+                  final statusText = it.verified ? 'Verified' : 'Not Verified';
+                  return Card(
+                    elevation: 0,
+                    color: Colors.white,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      title: Text(it.brand, style: t.titleMedium),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          [
+                            'GTIN: ${it.gtin}',
+                            if (it.lot != null && it.lot!.isNotEmpty) 'Lot: ${it.lot}',
+                            _fmtTime(it.scannedAt),
+                          ].join(' • '),
+                          style: t.bodyMedium?.copyWith(color: kTextSecondary),
+                        ),
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: statusColor.withOpacity(0.35)),
+                        ),
+                        child: Text(
+                          statusText,
+                          style: t.bodyMedium?.copyWith(
+                            color: statusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      onTap: () {
+                        // TODO: Navigate to details page if needed
+                      },
+                    ),
+                  );
                 },
               ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

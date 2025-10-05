@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
               text: TextSpan(
                 style: t.displaySmall?.copyWith(height: 1.25),
                 children: const [
-                  TextSpan(text: 'Verify your Medicine validity\nin '),
+                  TextSpan(text: 'Verify your Medicine validity in '),
                   TextSpan(
                     text: 'Seconds',
                     style: TextStyle(color: kBrandPrimary),
@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Caption (force exactly two lines max)
             const Text(
-              'Scan and verify your medication using our\nbarcode scanning feature',
+              'Scan and verify your medication using our barcode scanning feature',
               style: TextStyle(color: kTextSecondary, fontSize: 18, height: 1.35),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

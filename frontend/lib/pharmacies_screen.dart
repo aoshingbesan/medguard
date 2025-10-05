@@ -45,9 +45,20 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
 
     return Column(
       children: [
-        // Search bar
+        // Header
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(
+            'Verified Pharmacies',
+            style: t.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: kBrandPrimary,
+            ),
+          ),
+        ),
+        // Search bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: TextField(
             controller: _search,
             onChanged: (v) => setState(() => _q = v),
