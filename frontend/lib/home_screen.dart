@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
+import 'history_screen.dart';
+import 'pharmacies_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,52 +17,67 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
 
+    Widget homeBody() {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            // Headline
+            RichText(
+              text: TextSpan(
+                style: t.displaySmall?.copyWith(height: 1.25),
+                children: const [
+                  TextSpan(text: 'Verify your Medicine validity\nin '),
+                  TextSpan(
+                    text: 'Seconds',
+                    style: TextStyle(color: kBrandPrimary),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Caption (force exactly two lines max)
+            const Text(
+              'Scan and verify your medication using our\nbarcode scanning feature',
+              style: TextStyle(color: kTextSecondary, fontSize: 18, height: 1.35),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+            ),
+
+            // Bring buttons a bit higher: remove giant Spacer; use modest space instead
+            const SizedBox(height: 28),
+
+            // Primary action
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pushNamed(context, '/scan'),
+                child: const Text('Scan the Product'),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Secondary action
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pushNamed(context, '/manual'),
+                child: const Text('Enter GTIN Number Manually'),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     Widget body() {
-      if (_tab == 0) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
-              RichText(
-                text: TextSpan(
-                  style: t.displaySmall?.copyWith(height: 1.25),
-                  children: const [
-                    TextSpan(text: 'Verify your Medicine validity\nin '),
-                    TextSpan(text: 'Seconds', style: TextStyle(color: kBrandPrimary)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Scan and Verify your medication using our\nbarcode scanning feature',
-                style: TextStyle(color: kTextSecondary, fontSize: 18, height: 1.35),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.pushNamed(context, '/scan'),
-                  child: const Text('Scan the Product'),
-                ),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pushNamed(context, '/manual'),
-                  child: const Text('Enter GTIN Number Manually'),
-                ),
-              ),
-            ],
-          ),
-        );
-      } else if (_tab == 1) {
-        return const _DisabledPlaceholder(title: 'History');
-      } else {
-        return const _DisabledPlaceholder(title: 'Pharmacies');
-      }
+      if (_tab == 0) return homeBody();
+      if (_tab == 1) return const HistoryScreen();
+      return const PharmaciesScreen();
     }
 
     return Scaffold(
@@ -72,21 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded), label: 'History'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Pharmacies'),
+          BottomNavigationBarItem(icon: Icon(Icons.local_pharmacy_rounded), label: 'Pharmacies'),
         ],
       ),
-    );
-  }
-}
-
-class _DisabledPlaceholder extends StatelessWidget {
-  final String title;
-  const _DisabledPlaceholder({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('$title (coming soon)', style: Theme.of(context).textTheme.bodyMedium),
     );
   }
 }

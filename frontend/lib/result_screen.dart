@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
+import 'history_storage.dart';
 
-class ResultScreen extends StatelessWidget {
+class ResultScreen extends StatefulWidget {
   final bool verified;
   final Map<String, dynamic>? data;
 
@@ -12,10 +13,35 @@ class ResultScreen extends StatelessWidget {
   });
 
   @override
+  State<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends State<ResultScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _saveToHistory();
+  }
+
+  Future<void> _saveToHistory() async {
+    if (widget.data == null) return;
+    
+    final item = HistoryItemDTO(
+      brand: widget.data!['product_name'] ?? widget.data!['brand'] ?? 'Unknown Product',
+      gtin: widget.data!['gtin'] ?? '',
+      lot: widget.data!['batch_number'],
+      verified: widget.verified,
+      scannedAt: DateTime.now(),
+    );
+    
+    await HistoryStorage.add(item);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final title = verified ? 'Medicine Verified' : 'Medicine Not Verified';
-    final iconColor = verified ? Colors.green : Colors.orange.shade700;
-    final bgAccent = verified
+    final title = widget.verified ? 'Medicine Verified' : 'Medicine Not Verified';
+    final iconColor = widget.verified ? Colors.green : Colors.orange.shade700;
+    final bgAccent = widget.verified
         ? Colors.green.withOpacity(0.1)
         : Colors.orange.withOpacity(0.1);
 
@@ -31,18 +57,19 @@ class ResultScreen extends StatelessWidget {
           label: const Text('Back', style: TextStyle(color: Colors.black)),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
             const SizedBox(height: 20),
             Container(
               height: 120,
               width: 120,
               decoration: BoxDecoration(color: bgAccent, shape: BoxShape.circle),
               child: Icon(
-                verified ? Icons.verified_rounded : Icons.error_outline_rounded,
+                widget.verified ? Icons.verified_rounded : Icons.error_outline_rounded,
                 color: iconColor,
                 size: 64,
               ),
@@ -52,7 +79,8 @@ class ResultScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 32),
 
-            if (!verified) ...[
+            if (!widget.verified) ...[
+              const SizedBox(height: 16),
               _InfoCard(
                 title: 'Important Notice',
                 borderColor: Colors.orange.shade200,
@@ -72,7 +100,7 @@ class ResultScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _InfoCard(
                 title: 'Safety Recommendations',
                 borderColor: Colors.red.shade200,
@@ -83,9 +111,10 @@ class ResultScreen extends StatelessWidget {
                   'Return to the pharmacy where purchased',
                 ]),
               ),
+              const SizedBox(height: 20),
             ],
 
-            if (verified) ...[
+            if (widget.verified) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -98,22 +127,22 @@ class ResultScreen extends StatelessWidget {
                   children: [
                     const Text('Product Information', style: TextStyle(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
-                    Text('GTIN: ${data?['gtin'] ?? '—'}'),
-                    Text('Brand: ${data?['brand'] ?? '—'}'),
-                    Text('INN: ${data?['inn'] ?? '—'}'),
-                    Text('Expiry Date: ${data?['expiry'] ?? '—'}'),
+                    Text('GTIN: ${widget.data?['gtin'] ?? '—'}'),
+                    Text('Brand: ${widget.data?['product_name'] ?? widget.data?['brand'] ?? '—'}'),
+                    Text('Manufacturer: ${widget.data?['manufacturer'] ?? '—'}'),
+                    Text('Expiry Date: ${widget.data?['expiry'] ?? '—'}'),
                   ],
                 ),
               ),
             ],
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             _MainButton(
-              text: verified ? 'Scan another Medicine' : 'Report to RFDA',
-              color: verified ? Colors.green.shade700 : Colors.orange.shade800,
+              text: widget.verified ? 'Scan another Medicine' : 'Report to RFDA',
+              color: widget.verified ? Colors.green.shade700 : Colors.orange.shade800,
               textColor: Colors.white,
               onPressed: () {
-                if (verified) {
+                if (widget.verified) {
                   Navigator.pushNamed(context, '/home');
                 } else {
                   // TODO: open report link or compose email
@@ -128,7 +157,9 @@ class ResultScreen extends StatelessWidget {
               textColor: Colors.black,
               onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false),
             ),
+            const SizedBox(height: 32),
           ],
+        ),
         ),
       ),
     );

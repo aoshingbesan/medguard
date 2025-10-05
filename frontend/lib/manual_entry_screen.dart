@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
-import 'theme.dart';
 
 class ManualEntryScreen extends StatefulWidget {
   const ManualEntryScreen({super.key});

@@ -10,6 +10,7 @@ const kTextSecondary = Color(0xFF6B7280);
 
 const kSuccess = Color(0xFF22C55E);
 const kWarning = Color(0xFFD48806);
+const kDanger = Color(0xFFEF4444);
 
 const kCardBorder = Color(0xFFE5E7EB);
 const kRadius = 16.0;
