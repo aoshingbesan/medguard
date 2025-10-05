@@ -1,0 +1,19 @@
+[
+    {
+      "gtin": "5407003240214",
+      "rfda_reg_no": "RFDA-2023-00211",
+      "product_name": "Amoxicillin 500mg Capsules",
+      "manufacturer": "Dafra Pharma GmbH",
+      "country": "Switzerland",
+      "reg_expiry": "2026-05-10"
+    },
+    {
+      "gtin": "89041591625645",
+      "rfda_reg_no": "RFDA-2022-00487",
+      "product_name": "Paracetamol 500mg Tablets",
+      "manufacturer": "Cipla Ltd.",
+      "country": "India",
+      "reg_expiry": "2025-12-31"
+    }
+  ]
+  
