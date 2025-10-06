@@ -84,11 +84,12 @@ medguard/
 ### Prerequisites
 - Flutter SDK (3.0 or higher)
 - Dart SDK
+- Python 3.8+ (for backend)
 - Xcode (for iOS development)
 - Android Studio (for Android development)
 - Git
 
-### Installation Steps
+### Quick Start
 
 1. **Clone the Repository**
    ```bash
@@ -96,13 +97,68 @@ medguard/
    cd medguard
    ```
 
-2. **Install Flutter Dependencies**
+2. **Start the Backend Server**
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   python main.py
+   ```
+   The API will be available at `http://127.0.0.1:8000`
+
+3. **Start the Frontend App**
+   ```bash
+   # Open a new terminal window
+   cd frontend
+   flutter pub get
+   
+   # Run on iOS Simulator
+   flutter run -d ios
+   
+   # Or run on Android Emulator
+   flutter run -d android
+   ```
+
+### Detailed Setup Instructions
+
+#### Backend Setup
+
+1. **Navigate to Backend Directory**
+   ```bash
+   cd backend
+   ```
+
+2. **Install Python Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Start the FastAPI Server**
+   ```bash
+   python main.py
+   ```
+
+4. **Verify Backend is Running**
+   - Open browser and go to `http://127.0.0.1:8000`
+   - You should see: `{"message": "Welcome to MedGuard API", "total_products": 15+}`
+
+#### Frontend Setup
+
+1. **Navigate to Frontend Directory**
    ```bash
    cd frontend
+   ```
+
+2. **Install Flutter Dependencies**
+   ```bash
    flutter pub get
    ```
 
-3. **Run the Application**
+3. **Check Available Devices**
+   ```bash
+   flutter devices
+   ```
+
+4. **Run the Application**
    ```bash
    # For iOS Simulator
    flutter run -d ios
@@ -110,18 +166,56 @@ medguard/
    # For Android Emulator
    flutter run -d android
    
-   # For specific device
+   # For specific device (use device ID from flutter devices)
    flutter run -d [device-id]
+   
+   # For web (development only)
+   flutter run -d chrome
    ```
 
-4. **Build for Production**
+### Development Workflow
+
+1. **Start Backend First**
    ```bash
-   # iOS
-   flutter build ios
-   
-   # Android
-   flutter build apk
+   cd backend && python main.py
    ```
+
+2. **Start Frontend in New Terminal**
+   ```bash
+   cd frontend && flutter run
+   ```
+
+3. **Hot Reload**
+   - Press `r` in terminal to hot reload
+   - Press `R` to hot restart
+   - Press `q` to quit
+
+### Build for Production
+
+#### Frontend Build
+```bash
+cd frontend
+
+# iOS
+flutter build ios
+
+# Android
+flutter build apk
+
+# Web
+flutter build web
+```
+
+#### Backend Deployment
+```bash
+cd backend
+
+# Install production dependencies
+pip install -r requirements.txt
+
+# Run with production server (e.g., Gunicorn)
+gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
+```
 
 ## API Integration
 
