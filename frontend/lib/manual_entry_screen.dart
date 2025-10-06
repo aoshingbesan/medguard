@@ -26,22 +26,20 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
 
       final data = verified
           ? <String, dynamic>{
-              'product_name': res['product_name'] ?? '—',
-              'manufacturer': (res['manufacturer'] is Map)
-                  ? (res['manufacturer']['name'] ?? '—')
-                  : (res['manufacturer'] ?? '—'),
-              'country': (res['manufacturer'] is Map)
-                  ? (res['manufacturer']['country'] ?? res['country'] ?? '—')
-                  : (res['country'] ?? '—'),
-              'rfda_reg_no': res['rfda_reg_no'] ?? '—',
-              'reg_date': res['reg_date'] ?? '—',
-              'status': res['reg_status'] ?? 'Active and Verified',
-              'dosage_form': res['dosage_form'] ?? '—',
+              'product': res['product'] ?? '—',
+              'genericName': res['genericName'] ?? '—',
+              'dosageForm': res['dosageForm'] ?? '—',
               'strength': res['strength'] ?? '—',
               'pack_size': res['pack_size'] ?? '—',
-              'batch_number': res['batch'] ?? '—',
+              'batch': res['batch'] ?? '—',
               'mfg_date': res['mfg_date'] ?? '—',
-              'expiry': res['reg_expiry'] ?? '—',
+              'registration_date': res['registration_date'] ?? '—',
+              'license_expiry_date': res['license_expiry_date'] ?? '—',
+              'expiry': res['expiry'] ?? '—',
+              'shelf_life': res['shelf_life'] ?? '—',
+              'packaging_type': res['packaging_type'] ?? '—',
+              'marketing_authorization_holder': res['marketing_authorization_holder'] ?? '—',
+              'local_technical_representative': res['local_technical_representative'] ?? '—',
               'gtin': res['gtin'] ?? code,
             }
           : <String, dynamic>{ 'gtin': res['gtin'] ?? code };

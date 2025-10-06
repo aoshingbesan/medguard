@@ -11,7 +11,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _tab = 0; // 0: Home, 1: History, 2: Pharmacies
+  int _tab = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -19,12 +19,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Widget homeBody() {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
-            // Headline
+            const SizedBox(height: 24),
             RichText(
               text: TextSpan(
                 style: t.displaySmall?.copyWith(height: 1.25),
@@ -39,7 +38,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Caption (force exactly two lines max)
             const Text(
               'Scan and verify your medication using our barcode scanning feature',
               style: TextStyle(color: kTextSecondary, fontSize: 18, height: 1.35),
@@ -48,10 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
               softWrap: true,
             ),
 
-            // Bring buttons a bit higher: remove giant Spacer; use modest space instead
             const SizedBox(height: 28),
 
-            // Primary action
             SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -61,7 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Secondary action
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(

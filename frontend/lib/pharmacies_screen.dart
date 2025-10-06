@@ -5,7 +5,7 @@ class Pharmacy {
   final String name;
   final String address;
   final String phone;
-  final bool openNow; // simple flag; replace with real hours later
+  final bool openNow;
   Pharmacy({required this.name, required this.address, required this.phone, required this.openNow});
 }
 
@@ -45,7 +45,6 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
 
     return Column(
       children: [
-        // Header
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
@@ -56,7 +55,6 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
             ),
           ),
         ),
-        // Search bar
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: TextField(
@@ -115,7 +113,6 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
                     ],
                   ),
                   onTap: () {
-                    // Later: deep-link to Maps or show a detail sheet with route/phone
                     showModalBottomSheet(
                       context: context,
                       showDragHandle: true,
@@ -171,8 +168,6 @@ class _PharmacySheet extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // TODO: integrate url_launcher to dial
-                    // launchUrl(Uri.parse('tel:${p.phone}'));
                   },
                   icon: const Icon(Icons.call_rounded),
                   label: const Text('Call'),
@@ -182,8 +177,6 @@ class _PharmacySheet extends StatelessWidget {
               Expanded(
                 child: FilledButton.icon(
                   onPressed: () {
-                    // TODO: integrate maps deep-link
-                    // launchUrl(Uri.parse('https://maps.google.com/?q=${Uri.encodeComponent(p.name)} ${Uri.encodeComponent(p.address)}'));
                   },
                   icon: const Icon(Icons.directions_rounded),
                   label: const Text('Directions'),

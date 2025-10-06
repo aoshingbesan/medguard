@@ -21,7 +21,7 @@ class MedGuardApp extends StatelessWidget {
         '/': (_) => const SplashScreen(),
         '/home': (_) => const HomeScreen(),
         '/manual': (_) => const ManualEntryScreen(),
-        '/scan': (_) => const ScanScreen(), // placeholder for now
+        '/scan': (_) => const ScanScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/result') {

@@ -1,11 +1,9 @@
-# backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import json, pathlib
 
 app = FastAPI(title="MedGuard Mock API", version="1.0.0")
 
-# Allow cross-origin requests (for Flutter frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,7 +12,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load the data file once
 DATA_PATH = pathlib.Path(__file__).parent / "data" / "products.json"
 DATA = json.loads(DATA_PATH.read_text())
 
@@ -24,19 +21,14 @@ def root():
 
 @app.get("/api/verify")
 def verify(code: str):
-    """Verify a medicine GTIN code against the RFDA dataset."""
-    # Clean input (remove spaces/non-digits)
     code = "".join([c for c in code if c.isdigit()])
 
-    # Try direct match
     match = next((p for p in DATA if p["gtin"] == code), None)
 
-    # If no direct match, try padded (13 → 14 digits)
     if not match and len(code) == 13:
         code14 = "0" + code
         match = next((p for p in DATA if p["gtin"] == code14), None)
 
-    # Response
     if match:
         return {
             "status": "valid",
@@ -45,10 +37,16 @@ def verify(code: str):
             "genericName": match["genericName"],
             "dosageForm": match["dosageForm"],
             "strength": match["dosageStrength"],
-            "manufacturer": match["manufacturerName"],
-            "country": match["manufacturerCountry"],
-            "registrationNo": match["registrationNo"],
-            "expiryDate": match["expiryDate"],
+            "pack_size": match["packSize"],
+            "batch": "N/A",
+            "mfg_date": "N/A",
+            "registration_date": match["registrationDate"],
+            "license_expiry_date": match["expiryDate"],
+            "expiry": match["expiryDate"],
+            "shelf_life": match["shelfLife"],
+            "packaging_type": match["packagingType"],
+            "marketing_authorization_holder": match["marketingAuthorizationHolder"],
+            "local_technical_representative": match["localTechnicalRepresentative"]
         }
 
     return {

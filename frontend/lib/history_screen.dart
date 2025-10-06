@@ -47,7 +47,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Custom header with same styling as pharmacies screen
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
@@ -129,7 +128,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ),
                       onTap: () {
-                        // TODO: Navigate to details page if needed
                       },
                     ),
                   );
