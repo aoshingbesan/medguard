@@ -6,11 +6,14 @@ The MedGuard frontend is a Flutter-based mobile application that provides a user
 
 ## Features
 
-- **Medicine Verification**: Manual GTIN entry with real-time validation
-- **History Management**: Local storage of verification results using SharedPreferences
-- **Pharmacy Directory**: List of verified pharmacies with contact information
+- **Medicine Verification**: Barcode scanning and manual GTIN entry with real-time validation
+- **Multi-language Support**: English, French, and Kinyarwanda localization
+- **History Management**: Local storage of verification results with detailed information
+- **Pharmacy Directory**: List of verified pharmacies with location data and Google Maps integration
+- **RFDA Reporting**: Report unverified drugs to Rwanda FDA with location and photo
+- **Offline Capability**: SQLite database for offline verification and history
+- **Cloud Database Integration**: Supabase (PostgreSQL) for real-time data access
 - **Responsive Design**: Optimized for various screen sizes and orientations
-- **Offline Capability**: History stored locally for offline access
 - **Error Handling**: Comprehensive error states and user feedback
 
 ## Architecture
@@ -25,44 +28,84 @@ The app uses Flutter's built-in `StatefulWidget` for local state management, pro
 
 ### Data Flow
 ```
-User Input → API Call → Backend Processing → Response → UI Update → Local Storage
+User Input → GTIN Verification → Supabase Database Query / SQLite Offline → Response → UI Update → Local Storage
 ```
 
 ## Project Structure
 
 ```
 lib/
-├── main.dart                 # App entry point and routing
+├── main.dart                 # App entry point, Supabase initialization, routing
 ├── theme.dart               # App theming and color constants
-├── api.dart                 # HTTP client for backend communication
+├── api.dart                 # Supabase integration and hybrid online/offline verification
 ├── home_screen.dart         # Main navigation and dashboard
-├── manual_entry_screen.dart # GTIN input form
+├── manual_entry_screen.dart # GTIN input form with validation
 ├── result_screen.dart       # Verification results display
-├── history_screen.dart      # Verification history
+├── history_screen.dart      # Verification history with search
 ├── history_storage.dart     # Local data persistence
-├── pharmacies_screen.dart   # Pharmacy directory
-├── scan_screen.dart         # Barcode scanning (placeholder)
-└── splash_screen.dart       # App launch screen
+├── pharmacies_screen.dart   # Pharmacy directory with location data
+├── rfda_report_screen.dart  # RFDA reporting for unverified drugs
+├── settings_screen.dart      # Settings, language, offline mode
+├── splash_screen.dart       # App launch screen
+├── offline_database.dart    # SQLite offline database
+├── simple_language_service.dart # Multi-language support
+└── gtin_scanner/            # Barcode scanning module
+    ├── gtin_scanner.dart    # Main scanner widget
+    ├── models/
+    ├── services/            # GTIN parser and validator
+    └── widgets/             # Scanner UI components
 ```
 
 ## Key Components
 
-### 1. API Integration (`api.dart`)
+### 1. API Integration (`api.dart`) - Supabase
 
 ```dart
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class MedGuardApi {
-  static const baseUrl = 'http://127.0.0.1:8000';
-
-  static Future<Map<String, dynamic>> verify(String code) async {
-    final uri = Uri.parse('$baseUrl/api/verify?code=$code');
-    final res = await http.get(uri);
-    if (res.statusCode == 200) {
-      return jsonDecode(res.body) as Map<String, dynamic>;
+class Api {
+  static SupabaseClient get _supabase => Supabase.instance.client;
+  
+  static Future<Map<String, dynamic>> verifyOnline(String gtin) async {
+    // Clean GTIN - only digits
+    String cleanGtin = gtin.replaceAll(RegExp(r'[^\d]'), '').trim();
+    
+    // Query Supabase products table
+    final response = await _supabase
+        .from('products')
+        .select('*')
+        .eq('gtin', cleanGtin)
+        .maybeSingle();
+    
+    if (response != null) {
+      return {
+        'status': 'valid',
+        'gtin': response['gtin'],
+        'product_name': response['product_name'],
+        // ... additional fields
+      };
+    } else {
+      return {
+        'status': 'warning',
+        'gtin': cleanGtin,
+        'message': 'GTIN not found in RFDA register',
+      };
     }
-    throw Exception('Verify failed (${res.statusCode})');
+  }
+  
+  // Hybrid verification with offline fallback
+  static Future<Map<String, dynamic>> verify(String gtin) async {
+    final isOfflineMode = await OfflineDatabase.isOfflineModeEnabled();
+    if (isOfflineMode) return await verifyOffline(gtin);
+    
+    final isOnline = await isOnline();
+    if (isOnline) {
+      final result = await verifyOnline(gtin);
+      if (result['status'] == 'valid' || result['status'] == 'warning') {
+        return result;
+      }
+    }
+    return await verifyOffline(gtin);
   }
 }
 ```

@@ -32,12 +32,18 @@ ThemeData buildAppTheme() {
 
     // NOTE: using system fonts for now (no fontFamily set)
     textTheme: const TextTheme(
-      displaySmall: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: kTextPrimary),
-      titleLarge:  TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: kTextPrimary),
-      titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kTextPrimary),
-      bodyLarge:   TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: kTextPrimary),
-      bodyMedium:  TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: kTextSecondary),
-      labelLarge:  TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+      displaySmall: TextStyle(
+          fontSize: 32, fontWeight: FontWeight.w700, color: kTextPrimary),
+      titleLarge: TextStyle(
+          fontSize: 22, fontWeight: FontWeight.w700, color: kTextPrimary),
+      titleMedium: TextStyle(
+          fontSize: 18, fontWeight: FontWeight.w600, color: kTextPrimary),
+      bodyLarge: TextStyle(
+          fontSize: 16, fontWeight: FontWeight.w500, color: kTextPrimary),
+      bodyMedium: TextStyle(
+          fontSize: 16, fontWeight: FontWeight.w400, color: kTextSecondary),
+      labelLarge: TextStyle(
+          fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
     ),
 
     appBarTheme: const AppBarTheme(
@@ -45,14 +51,16 @@ ThemeData buildAppTheme() {
       elevation: 0,
       centerTitle: true,
       foregroundColor: kTextPrimary,
-      titleTextStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: kTextPrimary),
+      titleTextStyle: TextStyle(
+          fontWeight: FontWeight.w700, fontSize: 18, color: kTextPrimary),
     ),
 
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: kBrandPrimary,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadius)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kRadius)),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       ),
@@ -61,7 +69,8 @@ ThemeData buildAppTheme() {
       style: OutlinedButton.styleFrom(
         side: const BorderSide(color: kBrandPrimary, width: 1.4),
         foregroundColor: kTextPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadius)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kRadius)),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       ),

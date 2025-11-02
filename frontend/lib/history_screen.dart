@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'simple_language_service.dart';
 import 'theme.dart';
 import 'history_storage.dart';
+import 'result_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -24,28 +27,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() => _loading = false);
   }
 
-  String _fmtTime(DateTime dt) {
+  String _fmtTime(DateTime dt, SimpleLanguageService languageService) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inMinutes < 60) return languageService.formatMinutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return languageService.formatHoursAgo(diff.inHours);
+    return languageService.formatDaysAgo(diff.inDays);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    
+    return Consumer<SimpleLanguageService>(
+      builder: (context, languageService, child) {
+        if (_loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+        if (_items.isEmpty) {
+          return const _HistoryEmptyState();
+        }
 
-    if (_items.isEmpty) {
-      return const _HistoryEmptyState();
-    }
-
-    return Scaffold(
-      body: Column(
+        return Scaffold(
+          body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -53,7 +58,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'History',
+                    languageService.history,
                     style: t.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: kBrandPrimary,
@@ -61,16 +66,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Clear history',
+                  tooltip: languageService.clearHistory,
                   onPressed: () async {
                     final ok = await showDialog<bool>(
                       context: context,
                       builder: (c) => AlertDialog(
-                        title: const Text('Clear history?'),
-                        content: const Text('This will remove all saved scan records.'),
+                        title: Text(languageService.clearHistory),
+                        content: Text(languageService.clearHistoryDescription),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Clear')),
+                          TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: Text(languageService.cancel)),
+                          FilledButton(
+                              onPressed: () => Navigator.pop(c, true),
+                              child: Text(languageService.clear)),
                         ],
                       ),
                     );
@@ -94,30 +103,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 itemBuilder: (context, i) {
                   final it = _items[i];
                   final statusColor = it.verified ? kSuccess : kDanger;
-                  final statusText = it.verified ? 'Verified' : 'Not Verified';
+                  final statusText = it.verified
+                      ? languageService.verified
+                      : languageService.notVerified;
                   return Card(
                     elevation: 0,
                     color: Colors.white,
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                       title: Text(it.brand, style: t.titleMedium),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
                           [
                             'GTIN: ${it.gtin}',
-                            if (it.lot != null && it.lot!.isNotEmpty) 'Lot: ${it.lot}',
-                            _fmtTime(it.scannedAt),
+                            if (it.lot != null && it.lot!.isNotEmpty)
+                              'Lot: ${it.lot}',
+                            _fmtTime(it.scannedAt, languageService),
                           ].join(' • '),
                           style: t.bodyMedium?.copyWith(color: kTextSecondary),
                         ),
                       ),
                       trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: statusColor.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: statusColor.withOpacity(0.35)),
+                          border:
+                              Border.all(color: statusColor.withOpacity(0.35)),
                         ),
                         child: Text(
                           statusText,
@@ -128,6 +143,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ),
                       onTap: () {
+                        // Navigate to result screen with the stored data
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ResultScreen(
+                              verified: it.verified,
+                              data: it.data ?? {
+                                'gtin': it.gtin,
+                                'product': it.brand,
+                                'batch': it.lot,
+                              },
+                              fromHistory: true, // Flag to prevent duplicate save
+                            ),
+                          ),
+                        );
                       },
                     ),
                   );
@@ -138,6 +168,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       ),
     );
+      },
+    );
   }
 }
 
@@ -147,7 +179,8 @@ class _HistoryEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    return Center(
+    return Consumer<SimpleLanguageService>(
+      builder: (context, languageService, child) => Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -155,16 +188,17 @@ class _HistoryEmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.history_rounded, size: 56, color: kTextSecondary),
             const SizedBox(height: 14),
-            Text('No scans yet', style: t.headlineSmall),
+            Text(languageService.noScansYet, style: t.headlineSmall),
             const SizedBox(height: 6),
             Text(
-              'Your scan history will appear here once you start verifying medicines.',
+              languageService.scanHistoryDescription,
               style: t.bodyMedium?.copyWith(color: kTextSecondary),
               textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
+    ),
     );
   }
 }

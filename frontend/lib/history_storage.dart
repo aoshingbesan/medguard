@@ -8,6 +8,7 @@ class HistoryItemDTO {
   final String? lot;
   final bool verified;
   final DateTime scannedAt;
+  final Map<String, dynamic>? data; // Full product data for viewing details
 
   HistoryItemDTO({
     required this.brand,
@@ -15,6 +16,7 @@ class HistoryItemDTO {
     this.lot,
     required this.verified,
     required this.scannedAt,
+    this.data,
   });
 
   Map<String, dynamic> toMap() => {
@@ -23,6 +25,7 @@ class HistoryItemDTO {
         'lot': lot,
         'verified': verified,
         'scannedAt': scannedAt.toIso8601String(),
+        'data': data, // Store full data
       };
 
   factory HistoryItemDTO.fromMap(Map<String, dynamic> m) => HistoryItemDTO(
@@ -31,6 +34,7 @@ class HistoryItemDTO {
         lot: m['lot'],
         verified: m['verified'] == true,
         scannedAt: DateTime.tryParse(m['scannedAt'] ?? '') ?? DateTime.now(),
+        data: m['data'] != null ? Map<String, dynamic>.from(m['data']) : null,
       );
 }
 

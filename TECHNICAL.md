@@ -10,35 +10,72 @@ MedGuard is built using Flutter's widget-based architecture with a focus on:
 - **Reusable Components**: Custom widgets for consistent UI
 
 ### Current Implementation Status
-- **✅ Manual GTIN Entry**: Fully functional with real-time verification
-- **🚧 Barcode Scanning**: Currently in development phase
-  - Camera integration planned using `mobile_scanner` package
-  - GTIN detection and validation in progress
-  - Scanning UI and error handling to be implemented
+- **✅ Manual GTIN Entry**: Fully functional with real-time verification (13 or 14 digits validation)
+- **✅ Barcode Scanning**: Fully implemented and functional
+  - Camera integration using `mobile_scanner` package
+  - GTIN detection and validation for multiple formats (EAN-13, EAN-8, UPC-A, UPC-E, Code128, GS1 DataMatrix, QR codes)
+  - Scanning UI with camera preview and error handling
+  - Manual entry fallback option
 
 ### Key Frontend Code Examples
 
-#### 1. API Integration
+#### 1. API Integration (Supabase)
 ```dart
 // lib/api.dart
-class MedGuardApi {
-  static const String baseUrl = 'https://api.medguard.rw';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class Api {
+  static SupabaseClient get _supabase => Supabase.instance.client;
   
-  static Future<Map<String, dynamic>> verify(String gtin) async {
+  static Future<Map<String, dynamic>> verifyOnline(String gtin) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/verify/$gtin'),
-        headers: {'Content-Type': 'application/json'},
-      );
+      // Clean and validate GTIN
+      String cleanGtin = gtin.replaceAll(RegExp(r'[^\d]'), '').trim();
       
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+      // Query Supabase products table
+      final response = await _supabase
+          .from('products')
+          .select('*')
+          .eq('gtin', cleanGtin)
+          .maybeSingle();
+      
+      if (response != null) {
+        return {
+          'status': 'valid',
+          'gtin': response['gtin'],
+          'product_name': response['product_name'],
+          'brand': response['brand'] ?? response['product_name'],
+          // ... additional fields
+        };
       } else {
-        throw Exception('Failed to verify medicine');
+        return {
+          'status': 'warning',
+          'gtin': cleanGtin,
+          'message': 'GTIN not found in RFDA register',
+        };
       }
     } catch (e) {
-      throw Exception('Network error: $e');
+      throw Exception('Database error: $e');
     }
+  }
+  
+  // Hybrid verification with offline fallback
+  static Future<Map<String, dynamic>> verify(String gtin) async {
+    final isOfflineMode = await OfflineDatabase.isOfflineModeEnabled();
+    
+    if (isOfflineMode) {
+      return await verifyOffline(gtin);
+    }
+    
+    final isOnline = await isOnline();
+    if (isOnline) {
+      final result = await verifyOnline(gtin);
+      if (result['status'] == 'valid' || result['status'] == 'warning') {
+        return result;
+      }
+    }
+    
+    return await verifyOffline(gtin);
   }
 }
 ```
@@ -149,132 +186,110 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
 - **Error Handling**: Graceful error handling and user feedback
 - **Navigation**: Screen transitions and data passing
 
-## Backend Development
+## Database Architecture (Supabase)
 
-### API Architecture
-The backend provides RESTful API endpoints for medicine verification:
+### Database System
+MedGuard uses Supabase (cloud-hosted PostgreSQL) as its backend database system. No separate backend server is required.
 
-#### 1. Server-side Code Structure
-```javascript
-// server.js (Node.js/Express example)
-const express = require('express');
-const fs = require('fs');
-const app = express();
+#### 1. Database Schema
+```sql
+-- products table in Supabase
+CREATE TABLE products (
+  id BIGSERIAL PRIMARY KEY,
+  gtin TEXT NOT NULL UNIQUE,
+  product_name TEXT NOT NULL,
+  brand TEXT,
+  generic_name TEXT,
+  manufacturer TEXT,
+  country TEXT,
+  rfda_reg_no TEXT,
+  registration_date DATE,
+  license_expiry_date DATE,
+  dosage_form TEXT,
+  strength TEXT,
+  pack_size TEXT,
+  expiry_date DATE,
+  shelf_life TEXT,
+  packaging_type TEXT,
+  marketing_auth_holder TEXT,
+  local_tech_rep TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-// Load medicine database
-const products = JSON.parse(fs.readFileSync('./data/products.json', 'utf8'));
+-- pharmacies table in Supabase
+CREATE TABLE pharmacies (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  district TEXT,
+  sector TEXT,
+  cell TEXT,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  google_maps_link TEXT,
+  is_verified BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-// Medicine verification endpoint
-app.get('/api/verify/:gtin', (req, res) => {
-  const { gtin } = req.params;
-  
-  try {
-    // Search for medicine in database
-    const medicine = products.find(p => p.gtin === gtin);
-    
-    if (medicine) {
-      res.json({
-        status: 'valid',
-        gtin: medicine.gtin,
-        product_name: medicine.product_name,
-        manufacturer: medicine.manufacturer,
-        rfda_reg_no: medicine.rfda_reg_no,
-        reg_date: medicine.reg_date,
-        reg_status: medicine.reg_status,
-        dosage_form: medicine.dosage_form,
-        strength: medicine.strength,
-        pack_size: medicine.pack_size,
-        batch: medicine.batch,
-        mfg_date: medicine.mfg_date,
-        reg_expiry: medicine.reg_expiry
-      });
-    } else {
-      res.json({
-        status: 'invalid',
-        gtin: gtin,
-        message: 'Medicine not found in Rwanda FDA database'
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Internal server error'
-    });
-  }
-});
-
-app.listen(3000, () => {
-  console.log('MedGuard API server running on port 3000');
-});
+-- Indexes for performance
+CREATE INDEX idx_products_gtin ON products(gtin);
+CREATE INDEX idx_pharmacies_location ON pharmacies(latitude, longitude);
 ```
 
-#### 2. Database Schema
-```json
-// data/products.json structure (Raw Database)
-[
-  {
-    "gtin": "8904159162031",
-    "registrationNo": "Rwanda FDA-HMP-MA-0033",
-    "productBrandName": "ILET B2",
-    "genericName": "Glimepiride, Metformin HCl",
-    "dosageStrength": "2mg, 500mg",
-    "dosageForm": "Tablets",
-    "packSize": "Box Of 10, Box Of 30",
-    "packagingType": "ALU-PVC/PVDC BLISTER PACK",
-    "shelfLife": "24 Months",
-    "manufacturerName": "MSN LABORATORIES PRIVATE LIMITED",
-    "manufacturerCountry": "India",
-    "marketingAuthorizationHolder": "MSN LABORATORIES PRIVATE LIMITED",
-    "localTechnicalRepresentative": "ABACUS PHARMA (A) LTD",
-    "registrationDate": "2020-09-07",
-    "expiryDate": "2025-09-07"
-  }
-]
-
-// API Response Structure (Transformed for Frontend)
-{
-  "status": "valid",
-  "gtin": "8904159162031",
-  "product_name": "ILET B2",
-  "brand": "ILET B2",
-  "generic_name": "Glimepiride, Metformin HCl",
-  "manufacturer": {
-    "name": "MSN LABORATORIES PRIVATE LIMITED",
-    "country": "India"
-  },
-  "rfda_reg_no": "Rwanda FDA-HMP-MA-0033",
-  "registration_date": "2020-09-07",
-  "license_expiry_date": "2025-09-07",
-  "dosage_form": "Tablets",
-  "strength": "2mg, 500mg",
-  "pack_size": "Box Of 10, Box Of 30",
-  "expiry": "2025-09-07"
+#### 2. Supabase Integration
+```dart
+// lib/main.dart - Supabase initialization
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
+  
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
+  
+  runApp(MedGuardApp());
 }
 ```
 
-#### 3. API Endpoints
+#### 3. Database Query Examples
+```dart
+// Query products by GTIN
+final response = await _supabase
+    .from('products')
+    .select('*')
+    .eq('gtin', cleanGtin)
+    .maybeSingle();
+
+// Query pharmacies with location
+final pharmacies = await _supabase
+    .from('pharmacies')
+    .select('*')
+    .eq('is_verified', true)
+    .order('name');
+
+// Test connection
+final testResult = await _supabase
+    .from('products')
+    .select('id')
+    .limit(1)
+    .timeout(const Duration(seconds: 5));
 ```
-GET /api/verify/:gtin
-- Description: Verify medicine by GTIN
-- Parameters: gtin (string) - Global Trade Item Number
-- Response: JSON object with verification result
 
-GET /api/pharmacies
-- Description: Get list of verified pharmacies
-- Response: JSON array of pharmacy objects
-
-GET /api/health
-- Description: Health check endpoint
-- Response: JSON object with server status
-```
-
-### Backend Development Skills Demonstrated
-- **RESTful API Design**: Clean, intuitive endpoint structure
-- **Database Operations**: JSON-based data storage and retrieval
-- **Error Handling**: Proper HTTP status codes and error messages
-- **Data Validation**: Input validation and sanitization
-- **Server-side Logic**: Business logic implementation
-- **API Documentation**: Clear endpoint specifications
+### Database Development Skills Demonstrated
+- **Cloud Database**: Supabase PostgreSQL integration
+- **Database Operations**: SQL queries via Supabase SDK
+- **Error Handling**: Proper error handling for database queries
+- **Data Validation**: GTIN normalization and validation
+- **Connection Management**: Database connection testing and status monitoring
+- **Environment Variables**: Secure credential management with `.env` files
 
 ## Deployment Process
 
@@ -299,14 +314,16 @@ flutter build apk --release
 # - Android: Google Play Console
 ```
 
-#### Backend Deployment
+#### Database Configuration (Supabase)
 ```bash
-# Deploy to cloud platform (AWS/Heroku)
-# 1. Set up server instance
-# 2. Install Node.js and dependencies
-# 3. Configure environment variables
-# 4. Deploy application
-# 5. Set up monitoring and logging
+# No backend server deployment needed
+# 1. Create Supabase project at supabase.com
+# 2. Create tables in Supabase SQL Editor
+# 3. Import data using SQL scripts
+# 4. Configure .env file in frontend/ directory:
+#    SUPABASE_URL=https://your-project.supabase.co
+#    SUPABASE_ANON_KEY=your-anon-key-here
+# 5. App connects directly to Supabase
 ```
 
 ### Infrastructure Considerations
