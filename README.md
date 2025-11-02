@@ -11,14 +11,8 @@ MedGuard is a Flutter-based mobile application designed to help users verify the
 ## 📺 Demo Video (5 Minutes)
 🎥 **Watch MedGuard Demo Video**: [Click here to watch](https://drive.google.com/file/d/1yEMo3nQ2uCLGWuJtqI4bog-I3mNZqn8W/view?usp=sharing)
 
-**Video Content:**
-- Demonstrates core functionalities (barcode scanning, manual entry, verification, history)
-- Shows multi-language support (English, French, Kinyarwanda)
-- Displays RFDA reporting feature for unverified drugs
-- Highlights pharmacy directory with location services
-- Focuses on medicine verification workflow (no sign-up/sign-in required)
+##APK - (https://drive.google.com/file/d/183lva-N0j7wjr-23GvfZt3vYiHJKNmU-/view?usp=sharing)
 
-*This 5-minute demonstration showcases MedGuard's features, technical implementation, and user interface.*
 
 ## Features
 - **Barcode Scanning**: Advanced GTIN barcode scanning with camera integration
