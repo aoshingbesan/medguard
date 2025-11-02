@@ -5,7 +5,7 @@ MedGuard is a Flutter-based mobile application designed to help users verify the
 
 **📱 Distribution Information:** This application will **not** be published on **Google Play Store** or **Apple App Store** due to Rwanda FDA (RFDA) directives. Instead, the app will be distributed directly as an installation package (APK for Android, IPA for iOS) to comply with regulatory requirements. The app enables healthcare professionals and consumers to verify medicine authenticity directly from their mobile devices, ensuring compliance with regulatory requirements for medicine verification tools.
 
-## APK - (https://drive.google.com/file/d/183lva-N0j7wjr-23GvfZt3vYiHJKNmU-/view?usp=sharing)
+[APK HERE---->>](https://drive.google.com/file/d/183lva-N0j7wjr-23GvfZt3vYiHJKNmU-/view?usp=sharing)
 
 ## GitHub Repository
 🔗 **Repository Link**: [https://github.com/aoshingbesan/medguard](https://github.com/aoshingbesan/medguard)
