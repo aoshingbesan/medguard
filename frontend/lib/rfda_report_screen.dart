@@ -113,16 +113,67 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
 
   Future<void> _takePhoto() async {
     try {
-      // Request camera permission explicitly
-      final cameraStatus = await Permission.camera.request();
-      if (!cameraStatus.isGranted) {
-        setState(() {
-          _error = 'Camera permission is required to take a photo. Please grant camera permission in settings.';
-        });
-        return;
+      // Try to access cameras first - this is the most reliable way to check permissions on iOS
+      List<CameraDescription> cameras;
+      try {
+        cameras = await availableCameras();
+        debugPrint('Available cameras: ${cameras.length}');
+      } catch (e) {
+        debugPrint('Error getting cameras: $e');
+        
+        // If camera access fails, check and request permissions
+        PermissionStatus cameraStatus = await Permission.camera.status;
+        debugPrint('Camera permission status after error: $cameraStatus');
+        
+        if (!cameraStatus.isGranted) {
+          if (cameraStatus.isPermanentlyDenied) {
+            setState(() {
+              _error = 'Camera permission is permanently denied. Please enable it in Settings > Medguard > Camera.';
+            });
+            // Offer to open settings
+            try {
+              await openAppSettings();
+            } catch (_) {
+              // Ignore if settings can't be opened
+            }
+            return;
+          }
+          
+          // Request permission
+          cameraStatus = await Permission.camera.request();
+          debugPrint('Camera permission after request: $cameraStatus');
+          
+          // Re-check status after request
+          cameraStatus = await Permission.camera.status;
+          debugPrint('Camera permission re-checked: $cameraStatus');
+          
+          if (!cameraStatus.isGranted) {
+            setState(() {
+              _error = 'Camera permission is required. Please grant camera permission in your device settings.';
+            });
+            return;
+          }
+          
+          // Try again after granting permission
+          try {
+            cameras = await availableCameras();
+            debugPrint('Available cameras after permission grant: ${cameras.length}');
+          } catch (e2) {
+            debugPrint('Error getting cameras after permission: $e2');
+            setState(() {
+              _error = 'Unable to access camera. Please restart the app after granting permission.';
+            });
+            return;
+          }
+        } else {
+          // Permission is granted but camera access failed - might be in use
+          setState(() {
+            _error = 'Unable to access camera. Please ensure camera is not being used by another app.';
+          });
+          return;
+        }
       }
-
-      final cameras = await availableCameras();
+      
       if (cameras.isEmpty) {
         setState(() {
           _error = 'No cameras available';
@@ -137,9 +188,31 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
         enableAudio: false,
       );
 
-      await controller.initialize();
+      try {
+        await controller.initialize();
+      } catch (e) {
+        await controller.dispose();
+        debugPrint('Error initializing camera: $e');
+        
+        // Check if it's a permission error
+        if (e.toString().toLowerCase().contains('permission') || 
+            e.toString().toLowerCase().contains('access')) {
+          setState(() {
+            _error = 'Camera access denied. Please grant camera permission in Settings > Medguard > Camera.';
+          });
+          return;
+        }
+        
+        setState(() {
+          _error = 'Unable to initialize camera. Please try again.';
+        });
+        return;
+      }
 
-      if (!mounted) return;
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
 
       // Show camera preview and capture
       final image = await Navigator.push(
@@ -160,8 +233,9 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
 
       await controller.dispose();
     } catch (e) {
+      debugPrint('Error in _takePhoto: $e');
       setState(() {
-        _error = 'Error taking photo: $e. Please ensure camera permissions are granted.';
+        _error = 'Error taking photo: ${e.toString()}. Please ensure camera permissions are granted in Settings.';
       });
     }
   }
