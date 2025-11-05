@@ -515,7 +515,7 @@ With proper development and community support, MedGuard has the potential to:
 ---
 
 **Recommendations Document Version:** 1.0
-**Date:** [Current Date]
-**Prepared By:** [Your Name]
-**Supervisor:** [Supervisor Name]
+**Date:** 6th November 2025
+**Prepared By:** Ademola Oshingbesan
+
 

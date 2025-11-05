@@ -472,8 +472,8 @@ All screenshots are stored in `/images/App screenshots/` directory and can be re
 
 ---
 
-**Testing Completed By:** [Your Name]
-**Date:** [Current Date]
+**Testing Completed By:** Ademola Oshingbesan
+**Date:**  2 November 2025
 **App Version:** 1.0.0+1
 
 
