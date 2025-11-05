@@ -11,7 +11,7 @@ MedGuard is a Flutter-based mobile application designed to help users verify the
 🔗 **Repository Link**: [https://github.com/aoshingbesan/medguard](https://github.com/aoshingbesan/medguard)
 
 ## 📺 Demo Video (5 Minutes)
-🎥 **Watch MedGuard Demo Video**: [Click here to watch](https://drive.google.com/file/d/1yEMo3nQ2uCLGWuJtqI4bog-I3mNZqn8W/view?usp=sharing)
+🎥 **Watch MedGuard Demo Video**: [Click here to watch](https://drive.google.com/file/d/13bWtVrxb5zTnU7LLEO9aO7EaR5BxZzZW/view?usp=drive_link)
 
 
 ## Features
@@ -583,66 +583,6 @@ This section contains all related files and documentation for the MedGuard proje
 - **`frontend/`** - Flutter mobile application source code
 - **`images/App screenshots/`** - Application screenshots and visual documentation
 
-### Submission & Analysis Documents
-- 📊 **[TESTING_RESULTS.md](TESTING_RESULTS.md)** - Comprehensive testing results, screenshots, and performance metrics
-  - Unit tests (35+ test cases)
-  - Integration tests (24 scenarios)
-  - Performance testing on multiple devices
-  - Screenshots and test evidence
-  
-- 📈 **[ANALYSIS.md](ANALYSIS.md)** - Detailed analysis of results and objectives achievement
-  - Objectives achievement analysis (99% completion rate)
-  - Comparison with project proposal
-  - Technical implementation review
-  
-- 💬 **[DISCUSSION.md](DISCUSSION.md)** - Discussion on milestones importance and results impact
-  - Supervisor discussions
-  - Milestone importance analysis
-  - Community impact discussion
-  
-- 💡 **[RECOMMENDATIONS.md](RECOMMENDATIONS.md)** - Recommendations for community application and future work
-  - Recommendations to healthcare professionals
-  - Future enhancement suggestions
-  - Community application guidelines
-
-### Deployment & Technical Documentation
-- 🚀 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment documentation and build instructions
-  - Database configuration (Supabase)
-  - Android APK build instructions
-  - iOS build instructions
-  - Deployment verification steps
-  
-- 🔧 **[TECHNICAL.md](TECHNICAL.md)** - Technical architecture and implementation details
-  - Frontend architecture
-  - Database schema (Supabase)
-  - API integration examples
-  - Code structure and organization
-  
-- 🎨 **[DESIGN.md](DESIGN.md)** - Design documentation and UI/UX guidelines
-  - Color scheme and typography
-  - Component design patterns
-  - User interface guidelines
-
-### Additional Documentation
-- 🎥 **[VIDEO_DEMO_SCRIPT.md](VIDEO_DEMO_SCRIPT.md)** - 5-minute video demo script guide
-  - Step-by-step demo script
-  - Core functionalities focus
-  - Production tips and guidelines
-
-- 📋 **[SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md)** - Complete submission checklist
-  - Repository requirements
-  - Documentation checklist
-  - Testing verification
-
-- 📝 **[frontend/README.md](frontend/README.md)** - Frontend-specific documentation
-  - Flutter app architecture
-  - Frontend features and components
-  - Frontend development guide
-
-- 🔐 **[frontend/README_ENV.md](frontend/README_ENV.md)** - Environment variables setup guide
-  - Supabase credentials configuration
-  - .env file setup instructions
-  - Security best practices
 
 ## 📦 Installation Package / Deployed Version
 
