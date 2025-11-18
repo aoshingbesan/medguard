@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #f5f5f5;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* MedGuard brand colors - matching Flutter app */
+  --primary-600: #176F5B;
+  --primary-700: #0F4D40;
+}
+
+/* Force primary colors to use green */
+.bg-primary-600 {
+  background-color: #176F5B !important;
+}
+
+.bg-primary-700 {
+  background-color: #0F4D40 !important;
+}
+
+.text-primary-600 {
+  color: #176F5B !important;
+}
+
+.text-primary-700 {
+  color: #0F4D40 !important;
+}
+
+.border-primary-600 {
+  border-color: #176F5B !important;
+}
+
+.hover\:bg-primary-700:hover {
+  background-color: #0F4D40 !important;
+}
+
+.hover\:text-primary-700:hover {
+  color: #0F4D40 !important;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Input field styles - white background with light black border */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+input[type="url"],
+input[type="search"],
+textarea,
+select {
+  background-color: white !important;
+  border: 1px solid #6b7280 !important;
+  color: #000000 !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+textarea:focus,
+select:focus {
+  background-color: white !important;
+  border: 1px solid #6b7280 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(23, 111, 91, 0.2) !important;
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="tel"]::placeholder,
+input[type="number"]::placeholder,
+input[type="url"]::placeholder,
+input[type="search"]::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important;
+}
+

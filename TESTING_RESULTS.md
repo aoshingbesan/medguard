@@ -15,75 +15,134 @@ This document provides comprehensive testing results for the MedGuard medicine v
 - ✅ EAN-8 barcode parsing and validation
 - ✅ UPC-A barcode parsing and validation
 - ✅ UPC-E barcode parsing and validation
-- ✅ GS1 DataMatrix parsing with various formats
+- ✅ GS1 DataMatrix parsing with various formats (3 formats: (01) AI, FNC1 separator, concatenated)
 - ✅ QR code parsing with GS1 Application Identifiers
 - ✅ Code128 parsing and validation
 - ✅ Error handling for invalid formats
-- ✅ Edge cases (wrong length, invalid checksums)
+- ✅ Edge cases (wrong length, invalid checksums, empty strings, unsupported symbologies)
 
 **Test Results:**
-- **Total Tests:** 20+ test cases
+- **Total Tests:** 21 test cases
 - **Pass Rate:** 100%
 - **Coverage:** All major barcode formats and edge cases
 
-**Example Test Output:**
-```
-✓ EAN-13 parsing: 8430308740001 → 08430308740001
-✓ Invalid EAN-13 detection: 8430308740002 → Rejected
-✓ GS1 DataMatrix parsing: Multiple formats supported
-✓ Error handling: Invalid formats properly rejected
-```
+**Test Breakdown:**
+- Basic Barcode Parsing: 6 tests (EAN-13, EAN-8, UPC-A, UPC-E, invalid EAN-13, wrong length)
+- GS1 DataMatrix Parsing: 4 tests (with (01) AI, FNC1 separator, concatenated format, without (01) AI)
+- QR Code Parsing: 2 tests (with GS1 AIs, without GS1 AIs)
+- Code128 Parsing: 3 tests (valid GTIN, invalid GTIN, non-GTIN data)
+- Edge Cases: 5 tests (empty string, wrong lengths for EAN-8/UPC-A/Code128, invalid GS1 format)
+- Unsupported Symbologies: 1 test (PDF417)
+
+
+**Terminal Screenshot:**
+![GTIN Parser Unit Tests](images/App%20screenshots/testing_output/gtin-parser-unit-tests.png)
 
 #### GTIN Validator Testing
 **Test Cases Covered:**
-- ✅ GTIN checksum validation algorithm
+- ✅ GTIN checksum validation algorithm (modulus-10)
 - ✅ Multiple GTIN format validation (8, 12, 13, 14 digits)
-- ✅ Normalization to GTIN-14 format
+- ✅ Normalization to GTIN-14 format (with check digit recalculation)
 - ✅ GTIN type detection
-- ✅ Invalid input handling
+- ✅ Invalid input handling (null, special characters, letters, wrong lengths)
 
 **Test Results:**
-- **Total Tests:** 15+ test cases
+- **Total Tests:** 22 test cases
 - **Pass Rate:** 100%
 - **Coverage:** All validation logic paths
 
-**Example Test Output:**
-```
-✓ Valid EAN-13: 8430308740001 → Valid
-✓ Valid EAN-8: 12345670 → Valid
-✓ Invalid checksum: 8430308740002 → Rejected
-✓ Normalization: 8430308740001 → 08430308740001
-```
+**Test Breakdown:**
+- GTIN Validation: 6 tests (EAN-13, EAN-8, UPC-A, UPC-E, GTIN-14, invalid lengths)
+- Normalization to GTIN-14: 6 tests (EAN-13, EAN-8, UPC-A, UPC-E, already normalized, empty string)
+- GTIN Type Detection: 1 test (8, 12, 13, 14 digits)
+- Specific Validators: 4 tests (isValidEan13, isValidEan8, isValidUpcA, isValidUpcE)
+- Edge Cases & Invalid Input: 5 tests (null input, special characters, very long strings, letters, invalid normalization)
+
+
+**Terminal Screenshot:**
+![GTIN Validator Unit Tests](images/App%20screenshots/testing_output/gtin-validator-unit-tests.png)
+
+**Overall Unit Test Summary:**
+- **Total Unit Tests:** 43 tests
+- **Total Passed:** 43 tests
+- **Total Failed:** 0 tests
+- **Pass Rate:** 100%
+- **Execution Time:** ~1.5 seconds
+
+**Terminal Screenshot:**
+![Overall Unit Test Summary 1](images/App%20screenshots/testing_output/overall-unit-tests1.png)
+![Overall Unit Test Summary 2](images/App%20screenshots/testing_output/overall-unit-tests2.png)
+
 
 ---
 
 ### 1.2 Integration Testing
 
-#### API Integration Testing
-**Test Scenarios:**
-1. **Online Mode Testing**
-   - ✅ Successful API connection
-   - ✅ Valid GTIN verification (product found)
-   - ✅ Invalid GTIN verification (product not found)
-   - ✅ Network timeout handling
-   - ✅ API error handling
+Integration tests verify the complete application flow from user interaction to data persistence, testing the app as a whole system.
 
-2. **Offline Mode Testing**
-   - ✅ SQLite database query
-   - ✅ Offline verification with valid GTIN
-   - ✅ Offline verification with invalid GTIN
-   - ✅ Database synchronization
+#### Test Coverage
 
-3. **Hybrid Mode Testing**
-   - ✅ Automatic fallback from online to offline
-   - ✅ Seamless mode switching
-   - ✅ Data persistence across modes
+**Test Groups:**
+1. **App Launch & Initialization** (1 test)
+   - ✅ App launches and shows splash screen
+   - ✅ Navigation to home screen after splash
+
+2. **Home Screen Navigation** (2 tests)
+   - ✅ Home screen displays correctly
+   - ✅ Bottom navigation tabs work (Home, History, Pharmacies, Settings)
+
+3. **Manual Entry and Medicine Verification** (3 tests)
+   - ✅ Manual entry screen can be accessed
+   - ✅ Manual entry validates GTIN format
+   - ✅ Medicine verification with valid GTIN
+
+4. **Barcode Scanning** (2 tests)
+   - ✅ Scan button is accessible
+   - ✅ Scan button navigates to scanner
+
+5. **History Tracking** (2 tests)
+   - ✅ History screen displays correctly
+   - ✅ History saves verification results
+
+6. **Settings Changes** (3 tests)
+   - ✅ Settings screen is accessible (via bottom nav)
+   - ✅ Settings screen can be accessed via app bar
+   - ✅ Offline mode toggle works
+
+7. **Multi-language Switching** (5 tests)
+   - ✅ Language selection is accessible
+   - ✅ Switch to French language
+   - ✅ Switch to Kinyarwanda language
+   - ✅ Switch back to English language
+   - ✅ Language preference persists
+
+8. **End-to-End Verification Flow** (1 test)
+   - ✅ Complete verification flow: manual entry → result → history
 
 **Test Results:**
-- **Online Mode:** 10/10 scenarios passed
-- **Offline Mode:** 8/8 scenarios passed
-- **Hybrid Mode:** 6/6 scenarios passed
-- **Overall:** 24/24 scenarios passed
+- **Total Integration Tests:** 17 tests
+- **Test Groups:** 7 groups
+- **Pass Rate:** 100% (when run successfully)
+- **Coverage:** All major user flows and features
+
+**Test Breakdown:**
+- App Launch: 1 test
+- Navigation: 2 tests
+- Manual Entry & Verification: 3 tests
+- Barcode Scanning: 2 tests
+- History Tracking: 2 tests
+- Settings: 3 tests
+- Multi-language: 5 tests
+- End-to-End Flow: 1 test
+
+**Command to Run Integration Tests:**
+```bash
+cd frontend
+flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart -d <device-id>
+```
+
+**Terminal Screenshot:**
+![Integration Tests](images/App%20screenshots/testing_output/integration-tests.png)
 
 **Test Data Used:**
 ```
@@ -94,7 +153,6 @@ Valid GTINs:
 
 Invalid GTINs:
 - 8430308740002 (Invalid checksum)
-- 0000000000000 (Non-existent)
 - 1234567890123 (Not in database)
 ```
 
@@ -147,54 +205,101 @@ Invalid GTINs:
 
 ### 1.4 Functional Testing
 
-#### Core Features Testing
+Functional tests verify that each feature works correctly from a user's perspective, testing complete feature workflows.
 
-**Feature 1: Barcode Scanning**
-- ✅ Camera initialization
-- ✅ Barcode detection in various lighting conditions
-- ✅ Multiple barcode format support
-- ✅ GTIN extraction and validation
-- ✅ Error handling for camera failures
-- ✅ Permission handling (iOS/Android)
+#### Test Coverage
 
-**Feature 2: Manual GTIN Entry**
-- ✅ Text input validation
-- ✅ Format checking
-- ✅ Invalid input feedback
-- ✅ Submit functionality
-- ✅ Loading states
+**Feature 1: Barcode Scanning Functionality** (3 tests)
+- ✅ Extract and validate GTIN from EAN-13 barcode
+- ✅ Handle multiple barcode formats (EAN-13, EAN-8, UPC-A)
+- ✅ Handle camera permission errors gracefully
 
-**Feature 3: Medicine Verification**
-- ✅ Online verification
-- ✅ Offline verification
-- ✅ Hybrid mode operation
-- ✅ Result display
-- ✅ Error messages
+**Feature 2: Manual GTIN Entry** (3 tests)
+- ✅ Validate GTIN format before submission
+- ✅ Normalize GTIN to standard format
+- ✅ Handle special characters in input (dashes, spaces)
 
-**Feature 4: History Management**
-- ✅ Save verification results
-- ✅ Retrieve saved items
-- ✅ Display verification details
-- ✅ Clear history
-- ✅ Data persistence
+**Feature 3: Medicine Verification** (2 tests)
+- ✅ Prepare GTIN for verification (parse → normalize → validate)
+- ✅ Handle verification result structure
 
-**Feature 5: Multi-language Support**
-- ✅ English language
-- ✅ French language
-- ✅ Kinyarwanda language
-- ✅ Language switching
-- ✅ UI translation
+**Feature 4: History Management** (1 test)
+- ✅ Create history item with correct structure
 
-**Feature 6: Settings**
-- ✅ Language selection
-- ✅ Offline mode toggle
-- ✅ Settings persistence
+**Feature 5: Multi-language Support** (1 test)
+- ✅ Support multiple languages (tested in integration tests)
 
-**Test Results Summary:**
-- **Features Tested:** 6 core features
-- **Test Scenarios:** 40+ scenarios
-- **Pass Rate:** 95%+
-- **Critical Bugs:** 0
+**Feature 6: Settings** (1 test)
+- ✅ Settings structure defined (tested in integration tests)
+
+**Test Results:**
+- **Total Functional Tests:** 11 tests
+- **Pass Rate:** 100%
+- **Coverage:** All 6 core features
+
+**Command to Run Functional Tests:**
+```bash
+cd frontend
+flutter test test/functional_test.dart --reporter expanded
+```
+
+**Terminal Screenshot:**
+![Functional Tests](images/App%20screenshots/testing_output/functional-tests.png)
+
+---
+
+### 1.5 System Testing
+
+System tests verify the entire application as a complete system, testing end-to-end workflows and component integration.
+
+#### Test Coverage
+
+**System Test 1: Complete Verification Workflow** (1 test)
+- ✅ Full flow: scan → parse → validate → prepare for save
+- ✅ Component integration verification
+
+**System Test 2: Hybrid Online/Offline Mode Switching** (1 test)
+- ✅ Support both online and offline verification modes
+- ✅ Mode switching capability verification
+
+**System Test 3: Data Persistence Across Sessions** (1 test)
+- ✅ Persistence mechanisms in place
+- ✅ Data structure supports persistence
+
+**System Test 4: Error Handling and Recovery** (2 tests)
+- ✅ Handle invalid GTIN gracefully throughout system
+- ✅ Error handling mechanisms exist
+
+**System Test 5: Performance and Resource Management** (2 tests)
+- ✅ Handle multiple rapid parsing operations
+- ✅ Manage data structures efficiently
+
+**System Test 6: Cross-Component Integration** (1 test)
+- ✅ Integrate parser, validator, and data structures correctly
+- ✅ Components work together seamlessly
+
+**Test Results:**
+- **Total System Tests:** 8 tests
+- **Pass Rate:** 100%
+- **Coverage:** All major system workflows
+
+**Command to Run System Tests:**
+```bash
+cd frontend
+flutter test test/system_test.dart --reporter expanded
+```
+
+**Terminal Screenshot:**
+![System Tests](images/App%20screenshots/testing_output/system-tests.png)
+
+**Overall Test Summary:**
+- **Unit Tests:** 43 tests ✅
+- **Integration Tests:** 17 tests ✅
+- **Functional Tests:** 11 tests ✅
+- **System Tests:** 8 tests ✅
+- **Total Tests:** 79 tests
+- **Overall Pass Rate:** 100%
+![Overall Tests](images/App%20screenshots/testing_output/overall-tests.png)
 
 ---
 
@@ -231,12 +336,7 @@ Invalid GTINs:
 
 ### 2.2 Invalid GTIN Testing
 
-**Test Case 1: Invalid Checksum**
-- **GTIN:** `8430308740002`
-- **Expected Result:** Invalid - Checksum error
-- **Actual Result:** ✅ Rejected by validator
-
-**Test Case 2: Non-existent GTIN**
+**Test Case : Non-existent GTIN**
 - **GTIN:** `1234567890123`
 - **Expected Result:** Not found in database
 - **Actual Result:** ✅ Warning - "GTIN not found in RFDA register"
@@ -254,8 +354,8 @@ Invalid GTINs:
 ### 2.3 Edge Case Testing
 
 **Test Case 1: Empty Input**
-- **GTIN:** `""`
-- **Expected Result:** Validation error
+- **GTIN:** `1223`
+- **Expected Result:** Validation error 
 - **Actual Result:** ✅ Proper error message displayed
 
 **Test Case 2: Very Long Input**
@@ -279,9 +379,9 @@ Invalid GTINs:
 
 ### 3.1 iOS Testing
 
-#### Device 1: iPhone 14 Pro (Physical Device)
+#### Device 1: iPhone 16 Pro (Physical Device)
 - **OS Version:** iOS 17.2
-- **Hardware:** A16 Bionic, 6GB RAM
+- **Hardware:** A16 Bionic, 8GB RAM
 - **Test Results:**
   - ✅ App Launch Time: < 2 seconds
   - ✅ Scanner Initialization: < 1 second
@@ -302,22 +402,12 @@ Invalid GTINs:
   - ✅ UI Responsiveness: Good
   - ✅ Memory Usage: < 120MB
 
-#### Device 3: iPhone SE (2020) Simulator
-- **OS Version:** iOS 15.5
-- **Hardware:** Simulated A13 Bionic, 3GB RAM
-- **Test Results:**
-  - ✅ App Launch Time: < 4 seconds
-  - ✅ Scanner Initialization: < 2 seconds
-  - ✅ API Response Time: < 2 seconds
-  - ✅ UI Responsiveness: Good (slight delay on low-end)
-  - ✅ Memory Usage: < 150MB
-  - ⚠️ Note: Performance acceptable but slower than newer devices
 
 ### 3.2 Android Testing
 
-#### Device 1: Samsung Galaxy S21 (Physical Device - Not Available)
+#### Device 1: Samsung Galaxy A21 (Physical Device)
 - **OS Version:** Android 13
-- **Hardware:** Snapdragon 888, 8GB RAM
+- **Hardware:** 4GB RAM
 - **Expected Results:**
   - App Launch Time: < 2 seconds
   - Scanner Initialization: < 1 second
@@ -335,16 +425,6 @@ Invalid GTINs:
   - ✅ UI Responsiveness: Good
   - ✅ Memory Usage: < 130MB
 
-#### Device 3: Generic Android Emulator (Low-end)
-- **OS Version:** Android 11
-- **Hardware:** Emulated, 2GB RAM
-- **Test Results:**
-  - ✅ App Launch Time: < 5 seconds
-  - ✅ Scanner Initialization: < 3 seconds
-  - ✅ API Response Time: < 2.5 seconds
-  - ⚠️ UI Responsiveness: Acceptable (some lag on complex screens)
-  - ✅ Memory Usage: < 180MB
-  - ⚠️ Note: Works but performance is slower
 
 ### 3.3 Performance Metrics Summary
 
@@ -370,9 +450,9 @@ Invalid GTINs:
 ## 4. Network Condition Testing
 
 ### 4.1 Online Mode Testing
-- ✅ **Strong Connection (WiFi):** Fast response, < 1 second
-- ✅ **Moderate Connection (4G):** Acceptable response, < 2 seconds
-- ⚠️ **Weak Connection (3G):** Slower but functional, < 5 seconds
+- ✅ **Strong Connection (WiFi):** Fast response, < 2 second
+- ✅ **Moderate Connection (4G):** Acceptable response, < 5 seconds
+- ⚠️ **Weak Connection (3G):** Slower but functional, < 10 seconds
 - ✅ **Connection Loss:** Automatic fallback to offline mode
 
 ### 4.2 Offline Mode Testing
@@ -392,7 +472,8 @@ Invalid GTINs:
 
 ### 5.1 Core Functionality Screenshots
 
-**Note:** Screenshots should be captured demonstrating:
+Screenshots was captured demonstrating the following:
+
 1. Home screen with navigation cards
 2. Barcode scanning interface
 3. Manual GTIN entry screen
@@ -401,6 +482,7 @@ Invalid GTINs:
 6. History screen with saved items
 7. Settings screen with language options
 8. Different language displays (English, French, Kinyarwanda)
+
 
 ### 5.2 Testing Scenarios Screenshots
 
@@ -413,30 +495,57 @@ Invalid GTINs:
 - Error handling screens
 
 **Screenshot Location:** 
-All screenshots are stored in `/images/App screenshots/` directory and can be referenced in the video demonstration.
+All screenshots are stored in `images/App screenshots/Final_Screens` directory and can be referenced in the video demonstration.
 
 ---
 
 ## 6. Test Coverage Summary
 
 ### Unit Tests
-- **GTIN Parser:** 20+ test cases
-- **GTIN Validator:** 15+ test cases
-- **Total Coverage:** ~80% of core logic
+- **GTIN Parser:** 21 test cases
+- **GTIN Validator:** 22 test cases
+- **Total:** 43 tests
+- **Coverage:** ~80% of core logic
 
 ### Integration Tests
-- **API Integration:** 24 scenarios
-- **Database Operations:** 12 scenarios
-- **UI Integration:** 15+ scenarios
+- **App Launch & Navigation:** 3 tests
+- **Manual Entry & Verification:** 3 tests
+- **Barcode Scanning:** 2 tests
+- **History Tracking:** 2 tests
+- **Settings:** 3 tests
+- **Multi-language:** 5 tests
+- **End-to-End Flow:** 1 test
+- **Total:** 17 tests
 
 ### Functional Tests
-- **Core Features:** 40+ scenarios
-- **Edge Cases:** 15+ scenarios
-- **Error Handling:** 10+ scenarios
+- **Barcode Scanning:** 3 tests
+- **Manual GTIN Entry:** 3 tests
+- **Medicine Verification:** 2 tests
+- **History Management:** 1 test
+- **Multi-language:** 1 test
+- **Settings:** 1 test
+- **Total:** 11 tests
+
+### System Tests
+- **Complete Verification Workflow:** 1 test
+- **Hybrid Mode Switching:** 1 test
+- **Data Persistence:** 1 test
+- **Error Handling:** 2 tests
+- **Performance:** 2 tests
+- **Cross-Component Integration:** 1 test
+- **Total:** 8 tests
+
+### Overall Test Summary
+- **Total Tests:** 79 tests
+- **Unit Tests:** 43 tests ✅
+- **Integration Tests:** 17 tests ✅
+- **Functional Tests:** 11 tests ✅
+- **System Tests:** 8 tests ✅
+- **Overall Pass Rate:** 100%
 
 ### Performance Tests
-- **iOS Devices:** 3 configurations tested
-- **Android Devices:** 3 configurations tested
+- **iOS Devices:** 2 configurations tested
+- **Android Devices:** 2 configurations tested
 - **Network Conditions:** 4 scenarios tested
 
 ---
@@ -473,7 +582,7 @@ All screenshots are stored in `/images/App screenshots/` directory and can be re
 ---
 
 **Testing Completed By:** Ademola Oshingbesan
-**Date:**  2 November 2025
-**App Version:** 1.0.0+1
+**Date:**  18 November 2025
+**App Version:** 2.0.0+1
 
 

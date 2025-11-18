@@ -20,6 +20,8 @@ class GtinParser {
           return _parseCode128(rawText);
         case 'datamatrix':
         case 'gs1-datamatrix':
+        case 'gs1-dm':
+        case 'gs1dm':
           return _parseGs1DataMatrix(rawText);
         case 'qr':
         case 'qr-code':
@@ -52,11 +54,12 @@ class GtinParser {
     }
 
     final isValid = GtinValidator.isValidEan13(cleanText);
+    final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
 
     // Accept GTIN even if checksum fails - let API verify against database
     return GtinParseResult(
       rawText: rawText,
-      gtin: cleanText,
+      gtin: normalizedGtin,
       symbology: 'EAN-13',
       isValid: true, // Always allow to proceed, checksum validated in API
     );
@@ -76,10 +79,13 @@ class GtinParser {
       );
     }
 
+    // Normalize to GTIN-14 format
+    final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
+    
     // Accept if length is correct - let API verify
     return GtinParseResult(
       rawText: rawText,
-      gtin: cleanText, // Keep original EAN-8 format
+      gtin: normalizedGtin,
       symbology: 'EAN-8',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -99,10 +105,13 @@ class GtinParser {
       );
     }
 
+    // Normalize to GTIN-14 format
+    final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
+    
     // Accept if length is correct - let API verify
     return GtinParseResult(
       rawText: rawText,
-      gtin: cleanText, // Keep original UPC-A format
+      gtin: normalizedGtin,
       symbology: 'UPC-A',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -122,10 +131,13 @@ class GtinParser {
       );
     }
 
+    // Normalize to GTIN-14 format
+    final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
+    
     // Accept if length is correct - let API verify
     return GtinParseResult(
       rawText: rawText,
-      gtin: cleanText, // Keep original UPC-E format
+      gtin: normalizedGtin,
       symbology: 'UPC-E',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -137,10 +149,13 @@ class GtinParser {
 
     // Try to parse as GTIN if it looks like one
     if ([8, 12, 13, 14].contains(cleanText.length)) {
+      // Normalize to GTIN-14 format
+      final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
+      
       // Accept if length is correct - let API verify
       return GtinParseResult(
         rawText: rawText,
-        gtin: cleanText, // Keep original format
+        gtin: normalizedGtin,
         symbology: 'Code128',
         isValid: true, // Allow to proceed, API will validate
       );
@@ -151,7 +166,7 @@ class GtinParser {
       gtin: '',
       symbology: 'Code128',
       isValid: false,
-      error: 'Code128 does not contain valid GTIN length',
+        error: 'Code128 does not contain valid GTIN',
     );
   }
 
@@ -169,10 +184,13 @@ class GtinParser {
       );
     }
 
+    // Normalize to GTIN-14 format if needed
+    final normalizedGtin = gtin.length == 14 ? gtin : GtinValidator.normalizeToGtin14(gtin);
+    
     // Accept if we extracted a GTIN - API will validate
     return GtinParseResult(
       rawText: rawText,
-      gtin: gtin, // Keep original GTIN format
+      gtin: normalizedGtin,
       symbology: 'GS1-DM',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -203,10 +221,13 @@ class GtinParser {
       );
     }
 
+    // Normalize to GTIN-14 format if needed
+    final normalizedGtin = gtin.length == 14 ? gtin : GtinValidator.normalizeToGtin14(gtin);
+    
     // Accept if we extracted a GTIN - API will validate
     return GtinParseResult(
       rawText: rawText,
-      gtin: gtin, // Keep original GTIN format
+      gtin: normalizedGtin,
       symbology: 'QR',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -214,24 +235,31 @@ class GtinParser {
 
   /// Extracts GTIN from GS1 Application Identifier string
   static String _extractGtinFromGs1(String gs1String) {
-    // Look for (01) Application Identifier
-    final ai01Pattern = RegExp(r'\(01\)(\d{14})');
+    // Look for (01) Application Identifier - must be exactly 14 digits
+    final ai01Pattern = RegExp(r'\(01\)(\d{14})(?:[^\d]|$)');
     final match = ai01Pattern.firstMatch(gs1String);
 
     if (match != null) {
       return match.group(1) ?? '';
     }
 
-    // Also handle FNC1 separator (ASCII 29) format
-    final fnc1Pattern = RegExp(r'\x1d(\d{14})');
-    final fnc1Match = fnc1Pattern.firstMatch(gs1String);
-
-    if (fnc1Match != null) {
-      return fnc1Match.group(1) ?? '';
+    // Also handle FNC1 separator (ASCII 29) format - must be exactly 14 digits
+    // FNC1 can appear before or the pattern might be \x1d followed by digits
+    final fnc1Pattern1 = RegExp(r'\x1d01(\d{14})');
+    final fnc1Match1 = fnc1Pattern1.firstMatch(gs1String);
+    if (fnc1Match1 != null) {
+      return fnc1Match1.group(1) ?? '';
+    }
+    
+    // Also try pattern where FNC1 is just separator and 01 is implicit
+    final fnc1Pattern2 = RegExp(r'\x1d(\d{14})');
+    final fnc1Match2 = fnc1Pattern2.firstMatch(gs1String);
+    if (fnc1Match2 != null) {
+      return fnc1Match2.group(1) ?? '';
     }
 
-    // Handle concatenated format without parentheses
-    final concatPattern = RegExp(r'01(\d{14})');
+    // Handle concatenated format without parentheses - must start with 01 and be exactly 14 digits after
+    final concatPattern = RegExp(r'^01(\d{14})');
     final concatMatch = concatPattern.firstMatch(gs1String);
 
     if (concatMatch != null) {
@@ -258,11 +286,13 @@ class GtinParser {
     // Check if it looks like a GTIN (13 or 14 digits most common)
     if ([8, 12, 13, 14].contains(cleanText.length)) {
       final gtinType = GtinValidator.getGtinType(cleanText);
+      // Normalize to GTIN-14 format
+      final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
 
       // Accept if length is correct - let API verify checksum and database
       return GtinParseResult(
         rawText: rawText,
-        gtin: cleanText, // Keep original format
+        gtin: normalizedGtin,
         symbology: gtinType,
         isValid: true, // Allow to proceed, API will validate
       );
@@ -273,10 +303,13 @@ class GtinParser {
       final gtin = _extractGtinFromGs1(rawText);
 
       if (gtin.isNotEmpty) {
+        // Normalize to GTIN-14 format if needed
+        final normalizedGtin = gtin.length == 14 ? gtin : GtinValidator.normalizeToGtin14(gtin);
+        
         // Accept if we extracted a GTIN - API will validate
         return GtinParseResult(
           rawText: rawText,
-          gtin: gtin, // Keep original GTIN format
+          gtin: normalizedGtin,
           symbology: 'GS1',
           isValid: true, // Allow to proceed
         );
@@ -288,7 +321,7 @@ class GtinParser {
       gtin: '',
       symbology: symbology,
       isValid: false,
-      error: 'Unable to parse as GTIN. Expected 8, 12, 13, or 14 digits.',
+      error: 'Unsupported symbology: $symbology',
     );
   }
 }
