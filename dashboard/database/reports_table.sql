@@ -65,4 +65,30 @@ CREATE POLICY "Allow all operations for authenticated users" ON reports
 --     FOR DELETE
 --     USING (true);
 
+-- ============================================================================
+-- STORAGE BUCKET SETUP (for report photos)
+-- ============================================================================
+-- The mobile app uploads report photos to Supabase Storage.
+-- You need to create a storage bucket named 'reports' in your Supabase project:
+--
+-- 1. Go to your Supabase project dashboard
+-- 2. Navigate to Storage
+-- 3. Click "New bucket"
+-- 4. Name: reports
+-- 5. Public bucket: Yes (so photos can be accessed via public URLs)
+-- 6. File size limit: 5MB (or as needed)
+-- 7. Allowed MIME types: image/jpeg, image/png, image/jpg
+--
+-- Storage Policies (if RLS is enabled on storage):
+-- Allow public read access:
+-- CREATE POLICY "Public read access" ON storage.objects
+--     FOR SELECT USING (bucket_id = 'reports');
+--
+-- Allow authenticated insert:
+-- CREATE POLICY "Authenticated insert" ON storage.objects
+--     FOR INSERT WITH CHECK (bucket_id = 'reports');
+--
+-- Note: If storage upload fails, the app will fallback to storing
+-- the image as a base64 data URL in the photo_url field.
+
 

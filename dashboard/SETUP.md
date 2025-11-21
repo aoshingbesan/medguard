@@ -72,6 +72,15 @@ CREATE INDEX IF NOT EXISTS idx_reports_gtin ON reports(gtin);
 
 The dashboard needs access to your Supabase tables. Configure RLS policies:
 
+**⚠️ IMPORTANT: If delete/update operations are not working, run the fix script!**
+
+**Quick Fix (Recommended):**
+1. Go to your Supabase project dashboard
+2. Navigate to **SQL Editor**
+3. Open and run the script: `database/fix_rls_policies.sql`
+   - This script will properly configure RLS policies for both `products` and `pharmacies` tables
+   - It includes verification queries to confirm the policies are set correctly
+
 **Option 1: Allow all operations (for admin dashboard)**
 ```sql
 -- For products table
@@ -91,6 +100,7 @@ CREATE POLICY "Allow all for admin" ON reports FOR ALL USING (true) WITH CHECK (
 - Use the service role key instead of anon key for admin operations
 - This bypasses RLS policies
 - Update `.env` with `VITE_SUPABASE_SERVICE_KEY` instead of `VITE_SUPABASE_ANON_KEY`
+- **Note:** If using service role key, update `dashboard/src/lib/supabase.js` to use `VITE_SUPABASE_SERVICE_KEY`
 
 ### 5. Run the Dashboard
 
