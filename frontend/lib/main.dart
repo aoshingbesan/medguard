@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'simple_language_service.dart';
+import 'analytics_service.dart';
 import 'theme.dart';
 import 'splash_screen.dart';
 import 'home_screen.dart';
@@ -52,6 +53,13 @@ void main() async {
         anonKey: supabaseAnonKey,
       );
       debugPrint('✅ Supabase initialized successfully');
+      
+      // Track user session for analytics
+      try {
+        await AnalyticsService.trackSession();
+      } catch (e) {
+        debugPrint('⚠️ Failed to track session: $e');
+      }
     } catch (e, stackTrace) {
       // Log error and continue - app will show error screen if needed
       debugPrint('❌ Error during initialization: $e');

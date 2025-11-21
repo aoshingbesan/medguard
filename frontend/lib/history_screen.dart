@@ -4,6 +4,7 @@ import 'simple_language_service.dart';
 import 'theme.dart';
 import 'history_storage.dart';
 import 'result_screen.dart';
+import 'widgets/academic_disclaimer.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});

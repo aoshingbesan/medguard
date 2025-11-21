@@ -253,18 +253,46 @@ void main() {
             await tester.pumpAndSettle(const Duration(seconds: 3));
 
             // Go back to home - result screen uses TextButton with arrow_back_ios_new icon
-            final backButton = find.byIcon(Icons.arrow_back_ios_new);
-            if (backButton.evaluate().isEmpty) {
-              // Alternative: try finding by text "Back"
-              final backTextButton = find.textContaining('Back');
-              if (backTextButton.evaluate().isNotEmpty) {
-                await tester.tap(backTextButton.first);
-                await tester.pumpAndSettle();
-              }
-            } else {
-              await tester.tap(backButton.first);
+            // Try multiple strategies to find the back button
+            var backButtonFound = false;
+            
+            // Strategy 1: Find by "Back" text (most reliable)
+            final backTextButton = find.textContaining('Back');
+            if (backTextButton.evaluate().isNotEmpty) {
+              await tester.ensureVisible(backTextButton.first);
+              await tester.pump();
+              await tester.tap(backTextButton.first);
               await tester.pumpAndSettle();
+              backButtonFound = true;
             }
+            
+            // Strategy 2: Find by TextButton type in AppBar
+            if (!backButtonFound) {
+              final textButtons = find.byType(TextButton);
+              if (textButtons.evaluate().isNotEmpty) {
+                // The first TextButton in AppBar should be the back button
+                await tester.ensureVisible(textButtons.first);
+                await tester.pump();
+                await tester.tap(textButtons.first);
+                await tester.pumpAndSettle();
+                backButtonFound = true;
+              }
+            }
+            
+            // Strategy 3: Find by icon as last resort
+            if (!backButtonFound) {
+              final backButton = find.byIcon(Icons.arrow_back_ios_new);
+              if (backButton.evaluate().isNotEmpty) {
+                await tester.ensureVisible(backButton.first);
+                await tester.pump();
+                await tester.tap(backButton.first);
+                await tester.pumpAndSettle();
+                backButtonFound = true;
+              }
+            }
+            
+            // If still not found, try using Navigator.pop programmatically
+            // or just continue - the test might still pass if we're already on the right screen
           }
         }
 
@@ -532,18 +560,46 @@ void main() {
             await tester.pumpAndSettle(const Duration(seconds: 3));
 
             // Step 5: Go back to home - result screen uses TextButton with arrow_back_ios_new icon
-            final backButton = find.byIcon(Icons.arrow_back_ios_new);
-            if (backButton.evaluate().isEmpty) {
-              // Alternative: try finding by text "Back"
-              final backTextButton = find.textContaining('Back');
-              if (backTextButton.evaluate().isNotEmpty) {
-                await tester.tap(backTextButton.first);
-                await tester.pumpAndSettle();
-              }
-            } else {
-              await tester.tap(backButton.first);
+            // Try multiple strategies to find the back button
+            var backButtonFound = false;
+            
+            // Strategy 1: Find by "Back" text (most reliable)
+            final backTextButton = find.textContaining('Back');
+            if (backTextButton.evaluate().isNotEmpty) {
+              await tester.ensureVisible(backTextButton.first);
+              await tester.pump();
+              await tester.tap(backTextButton.first);
               await tester.pumpAndSettle();
+              backButtonFound = true;
             }
+            
+            // Strategy 2: Find by TextButton type in AppBar
+            if (!backButtonFound) {
+              final textButtons = find.byType(TextButton);
+              if (textButtons.evaluate().isNotEmpty) {
+                // The first TextButton in AppBar should be the back button
+                await tester.ensureVisible(textButtons.first);
+                await tester.pump();
+                await tester.tap(textButtons.first);
+                await tester.pumpAndSettle();
+                backButtonFound = true;
+              }
+            }
+            
+            // Strategy 3: Find by icon as last resort
+            if (!backButtonFound) {
+              final backButton = find.byIcon(Icons.arrow_back_ios_new);
+              if (backButton.evaluate().isNotEmpty) {
+                await tester.ensureVisible(backButton.first);
+                await tester.pump();
+                await tester.tap(backButton.first);
+                await tester.pumpAndSettle();
+                backButtonFound = true;
+              }
+            }
+            
+            // If still not found, try using Navigator.pop programmatically
+            // or just continue - the test might still pass if we're already on the right screen
 
             // Step 6: Check history
             await tester.tap(find.byIcon(Icons.bar_chart_rounded));

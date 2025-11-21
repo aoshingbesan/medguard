@@ -248,6 +248,58 @@ flutter test test/functional_test.dart --reporter expanded
 
 ---
 
+### 1.4.1 Validation Testing
+
+Validation testing ensures that MedGuard handles invalid inputs gracefully and maintains data integrity, especially for product verification and reporting modules. These tests simulate real-world conditions where medicine packaging may be damaged, improperly formatted, or unreadable.
+
+#### Test Coverage
+
+**1. Barcode and DataMatrix Validation:**
+- ✅ Invalid GTINs are rejected (invalid checksums)
+- ✅ Malformed GS1 DataMatrix codes are detected
+- ✅ Clear error messages are produced
+- ✅ System avoids crashes on invalid input
+
+**2. Form & Verification Data Validation:**
+- ✅ **Special Characters:** Dashes, spaces, dots are handled correctly (stripped and validated)
+- ✅ **Incorrect Lengths:** All invalid lengths (5, 7, 15, 17 digits, empty) are rejected
+- ✅ **Mixed Letters and Digits:** All alphanumeric inputs are rejected
+- ✅ **Excessively Long Strings:** Strings over 14 digits are rejected
+
+**3. Error Handling:**
+- ✅ Null inputs handled gracefully
+- ✅ Empty strings handled without crashes
+- ✅ Invalid formats handled without system crashes
+- ✅ All edge cases handled safely
+
+**Test Results:**
+- **Total Validation Tests:** 7 test groups
+- **Pass Rate:** 100%
+- **Coverage:** All validation scenarios from research report
+
+**Command to Run Validation Tests:**
+```bash
+cd frontend
+flutter test test/validation_test_report.dart
+```
+
+**Test Output Summary:**
+- ✓ Invalid barcodes are rejected
+- ✓ Malformed GS1 DataMatrix codes are detected
+- ✓ Special characters are handled correctly
+- ✓ Incorrect lengths are caught
+- ✓ Mixed letters/digits are rejected
+- ✓ Excessively long strings are rejected
+- ✓ System handles errors gracefully without crashes
+- ✓ Valid inputs pass validation
+
+**Terminal Screenshot:**
+![Validation Tests1](images/App%20screenshots/testing_output/validation-tests1.png)
+![Validation Tests2](images/App%20screenshots/testing_output/validation-tests2.png)
+![Validation Tests3](images/App%20screenshots/testing_output/validation-tests3.png)
+
+---
+
 ### 1.5 System Testing
 
 System tests verify the entire application as a complete system, testing end-to-end workflows and component integration.

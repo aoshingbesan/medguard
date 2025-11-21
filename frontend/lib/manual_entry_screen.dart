@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'simple_language_service.dart';
 import 'api.dart';
+import 'analytics_service.dart';
+import 'widgets/academic_disclaimer.dart';
 
 class ManualEntryScreen extends StatefulWidget {
   const ManualEntryScreen({super.key});
@@ -26,6 +28,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
     });
 
     final code = _controller.text.trim();
+    final originalGtin = code.replaceAll(RegExp(r'[^\d]'), ''); // Preserve original for display
     try {
       final apiResult = await Api.verify(code);
       print('Manual Entry API Result: $apiResult');
@@ -35,26 +38,50 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
       // Check if the API returned a valid medicine
       if (apiResult['status'] == 'valid') {
         print('Manual Entry: Medicine is VALID - showing success result');
+        // Use original GTIN for display
+        final displayData = Map<String, dynamic>.from(apiResult);
+        displayData['gtin'] = originalGtin;
+        
+        // Track analytics: verified manual entry
+        AnalyticsService.trackVerification(
+          gtin: originalGtin,
+          method: 'manual',
+          result: 'verified',
+          source: apiResult['source'] ?? 'online',
+          productName: displayData['product']?.toString(),
+          manufacturer: displayData['manufacturer']?.toString(),
+        );
+        
         // Medicine is verified - show success result
         Navigator.pushNamed(
           context,
           '/result',
           arguments: {
             'verified': true,
-            'data': apiResult,
+            'data': displayData,
             'source': 'online',
           },
         );
       } else if (apiResult['status'] == 'warning') {
         print('Manual Entry: Medicine is NOT FOUND - showing warning result');
+        // Use original GTIN for display
         // Medicine not found - show warning result
+        
+        // Track analytics: unverified manual entry
+        AnalyticsService.trackVerification(
+          gtin: originalGtin,
+          method: 'manual',
+          result: 'unverified',
+          source: apiResult['source'] ?? 'online',
+        );
+        
         Navigator.pushNamed(
           context,
           '/result',
           arguments: {
             'verified': false,
             'data': {
-              'gtin': apiResult['gtin'],
+              'gtin': originalGtin,
               'product': 'Unknown Product',
               'message': apiResult['message'],
             },
@@ -63,6 +90,13 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
         );
       } else {
         // API error
+        // Track analytics: error
+        AnalyticsService.trackVerification(
+          gtin: originalGtin,
+          method: 'manual',
+          result: 'error',
+          source: apiResult['source'] ?? 'online',
+        );
         setState(() {
           _error = apiResult['message'] ?? 'Verification failed';
         });
@@ -93,7 +127,10 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
         ),
         title: Text(languageService.enterGtinManually),
       ),
-      body: Padding(
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,6 +186,10 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
             ),
           ],
         ),
+            ),
+          ),
+          const AcademicDisclaimer(),
+        ],
       ),
     );
       },

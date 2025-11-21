@@ -3,15 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'simple_language_service.dart';
 import 'theme.dart';
+import 'widgets/academic_disclaimer.dart';
 
 class RFDAReportScreen extends StatefulWidget {
   final Map<String, dynamic> drugData;
@@ -261,97 +260,83 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
     });
 
     try {
-      // Create email content
       final languageService = Provider.of<SimpleLanguageService>(context, listen: false);
       
-      final subject = 'RFDA Report - Unverified Drug: ${widget.drugData['gtin'] ?? 'Unknown'}';
-      final body = '''
-RFDA Drug Verification Report
-
-Drug Information:
-- GTIN: ${widget.drugData['gtin'] ?? 'Unknown'}
-- Product: ${widget.drugData['product'] ?? 'Unknown'}
-- Generic Name: ${widget.drugData['genericName'] ?? 'Unknown'}
-- Manufacturer: ${widget.drugData['manufacturer'] ?? 'Unknown'}
-
-Location Information:
-- Latitude: ${_currentPosition!.latitude}
-- Longitude: ${_currentPosition!.longitude}
-- Accuracy: ${_currentPosition!.accuracy} meters
-- Address: ${_address ?? 'Address not available'}
-- Google Maps Link: https://maps.google.com/?q=${_currentPosition!.latitude},${_currentPosition!.longitude}
-- Timestamp: ${DateTime.now().toIso8601String()}
-
-Report Details:
-This drug was not found in the RFDA database during verification.
-Please investigate and update the database if this is a legitimate registered medicine.
-
-Report submitted via MedGuard App.
-      ''';
-
-      // Method 1: Try to use flutter_email_sender for direct email with attachment
-      bool emailSent = false;
+      // Get Supabase client
+      final supabase = Supabase.instance.client;
+      
+      // Upload photo to Supabase Storage
+      String? photoUrl;
       try {
-        final Email email = Email(
-          body: body,
-          subject: subject,
-          recipients: ['a.oshingbes@alustudent.com'],
-          attachmentPaths: [_capturedImage!.path],
-          isHTML: false,
-        );
-
-        await FlutterEmailSender.send(email);
-        emailSent = true;
-      } catch (e) {
-        debugPrint('FlutterEmailSender failed: $e');
+        // Read image file
+        final imageFile = File(_capturedImage!.path);
+        final imageBytes = await imageFile.readAsBytes();
+        final imageBase64 = base64Encode(imageBytes);
         
-        // Method 2: Fallback to share functionality with email intent
+        // Generate unique filename
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'report_${widget.drugData['gtin'] ?? 'unknown'}_$timestamp.jpg';
+        
+        // Try to upload to storage bucket 'reports' (create if doesn't exist)
         try {
-          // Try to share with email intent
-          final emailUrl = Uri(
-            scheme: 'mailto',
-            path: 'a.oshingbes@alustudent.com',
-            query: 'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}',
-          );
-
-          if (await canLaunchUrl(emailUrl)) {
-            await launchUrl(emailUrl, mode: LaunchMode.externalApplication);
-            emailSent = true;
-            // Also share the image separately so user can attach it
-            await Future.delayed(const Duration(seconds: 1)); // Give email client time to open
-            await Share.shareXFiles(
-              [XFile(_capturedImage!.path)],
-              text: 'Please attach this image to your email to a.oshingbes@alustudent.com',
-            );
-          } else {
-            // Method 3: Final fallback - share everything
-            await Share.shareXFiles(
-              [XFile(_capturedImage!.path)],
-              text: '$body\n\nPlease send this report to: a.oshingbes@alustudent.com',
-              subject: subject,
-            );
-            emailSent = true;
-          }
-        } catch (e2) {
-          debugPrint('Email sharing failed: $e2');
-          setState(() {
-            _error = 'Could not open email client. Error: $e2. Please manually send email to a.oshingbes@alustudent.com';
-          });
-          return;
+          // Upload to storage
+          await supabase.storage
+              .from('reports')
+              .uploadBinary(
+                fileName,
+                imageBytes,
+                fileOptions: const FileOptions(
+                  contentType: 'image/jpeg',
+                  upsert: false,
+                ),
+              );
+          
+          // Get public URL
+          photoUrl = supabase.storage.from('reports').getPublicUrl(fileName);
+          debugPrint('✅ Photo uploaded to storage: $photoUrl');
+        } catch (storageError) {
+          debugPrint('⚠️ Storage upload failed, using base64: $storageError');
+          // Fallback: Store as base64 data URL if storage fails
+          photoUrl = 'data:image/jpeg;base64,$imageBase64';
         }
+      } catch (e) {
+        debugPrint('Error processing image: $e');
+        // Continue without photo URL
       }
       
-      if (!emailSent) {
-        setState(() {
-          _error = 'Failed to send email. Please manually send the report to a.oshingbes@alustudent.com';
-        });
-        return;
-      }
+      // Prepare report data
+      final googleMapsLink = 'https://maps.google.com/?q=${_currentPosition!.latitude},${_currentPosition!.longitude}';
+      
+      final reportData = {
+        'gtin': widget.drugData['gtin'] ?? '',
+        'product_name': widget.drugData['product'] ?? widget.drugData['product_name'] ?? '',
+        'product': widget.drugData['product'] ?? '',
+        'generic_name': widget.drugData['genericName'] ?? widget.drugData['generic_name'] ?? '',
+        'manufacturer': widget.drugData['manufacturer'] ?? '',
+        'latitude': _currentPosition!.latitude,
+        'longitude': _currentPosition!.longitude,
+        'address': _address ?? '',
+        'google_maps_link': googleMapsLink,
+        'photo_url': photoUrl ?? '',
+        'notes': 'Report submitted via MedGuard App. Drug not found in RFDA database during verification.',
+        'status': 'pending',
+      };
+      
+      debugPrint('📤 Submitting report to Supabase: $reportData');
+      
+      // Insert report into Supabase
+      final response = await supabase
+          .from('reports')
+          .insert(reportData)
+          .select()
+          .single();
+      
+      debugPrint('✅ Report submitted successfully: ${response['id']}');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(languageService.reportSent),
+            content: Text(languageService.reportSent ?? 'Report submitted successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -396,8 +381,11 @@ Report submitted via MedGuard App.
           ),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: Column(
+        children: [
+          Expanded(
+            child: SafeArea(
+              child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,7 +545,11 @@ Report submitted via MedGuard App.
               ),
             ],
           ),
-        ),
+              ),
+            ),
+          ),
+          const AcademicDisclaimer(),
+        ],
       ),
     );
   }

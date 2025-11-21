@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Research and setup files
+Research_Report.md
+dashboard/database/*.sql
+*SETUP.md
+*TROUBLESHOOTING.md
+ANALYTICS_SETUP.md
+REPORTS_SETUP.md

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'simple_language_service.dart';
 import 'theme.dart';
 import 'api.dart';
+import 'widgets/academic_disclaimer.dart';
 
 class Pharmacy {
   final int id;

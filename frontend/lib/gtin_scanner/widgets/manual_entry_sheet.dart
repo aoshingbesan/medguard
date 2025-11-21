@@ -105,13 +105,14 @@ class _ManualEntrySheetState extends State<ManualEntrySheet> {
       return;
     }
     
-    // Normalize to GTIN-14 format for consistency
+    // Normalize to GTIN-14 format for API calls
     final gtin14 = GtinValidator.normalizeToGtin14(cleanGtin);
     final gtinType = GtinValidator.getGtinType(cleanGtin);
 
     final result = GtinScanResult(
       rawText: _controller.text,
-      gtin: gtin14,
+      gtin: gtin14, // Normalized for API
+      originalGtin: cleanGtin, // Original format for display
       symbology: gtinType,
       scannedAt: DateTime.now(),
       isValid: true,

@@ -33,6 +33,7 @@ class GtinParser {
       return GtinParseResult(
         rawText: rawText,
         gtin: '',
+        originalGtin: '',
         symbology: symbology,
         isValid: false,
         error: 'Parse error: $e',
@@ -47,6 +48,7 @@ class GtinParser {
       return GtinParseResult(
         rawText: rawText,
         gtin: '',
+        originalGtin: '',
         symbology: 'EAN-13',
         isValid: false,
         error: 'EAN-13 must be 13 digits',
@@ -59,7 +61,8 @@ class GtinParser {
     // Accept GTIN even if checksum fails - let API verify against database
     return GtinParseResult(
       rawText: rawText,
-      gtin: normalizedGtin,
+      gtin: normalizedGtin, // Normalized for API
+      originalGtin: cleanText, // Original format for display
       symbology: 'EAN-13',
       isValid: true, // Always allow to proceed, checksum validated in API
     );
@@ -73,6 +76,7 @@ class GtinParser {
       return GtinParseResult(
         rawText: rawText,
         gtin: '',
+        originalGtin: '',
         symbology: 'EAN-8',
         isValid: false,
         error: 'EAN-8 must be 8 digits',
@@ -81,11 +85,12 @@ class GtinParser {
 
     // Normalize to GTIN-14 format
     final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
-    
+
     // Accept if length is correct - let API verify
     return GtinParseResult(
       rawText: rawText,
-      gtin: normalizedGtin,
+      gtin: normalizedGtin, // Normalized for API
+      originalGtin: cleanText, // Original format for display
       symbology: 'EAN-8',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -99,6 +104,7 @@ class GtinParser {
       return GtinParseResult(
         rawText: rawText,
         gtin: '',
+        originalGtin: '',
         symbology: 'UPC-A',
         isValid: false,
         error: 'UPC-A must be 12 digits',
@@ -107,11 +113,12 @@ class GtinParser {
 
     // Normalize to GTIN-14 format
     final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
-    
+
     // Accept if length is correct - let API verify
     return GtinParseResult(
       rawText: rawText,
-      gtin: normalizedGtin,
+      gtin: normalizedGtin, // Normalized for API
+      originalGtin: cleanText, // Original format for display
       symbology: 'UPC-A',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -125,6 +132,7 @@ class GtinParser {
       return GtinParseResult(
         rawText: rawText,
         gtin: '',
+        originalGtin: '',
         symbology: 'UPC-E',
         isValid: false,
         error: 'UPC-E must be 8 digits',
@@ -133,11 +141,12 @@ class GtinParser {
 
     // Normalize to GTIN-14 format
     final normalizedGtin = GtinValidator.normalizeToGtin14(cleanText);
-    
+
     // Accept if length is correct - let API verify
     return GtinParseResult(
       rawText: rawText,
-      gtin: normalizedGtin,
+      gtin: normalizedGtin, // Normalized for API
+      originalGtin: cleanText, // Original format for display
       symbology: 'UPC-E',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -155,7 +164,8 @@ class GtinParser {
       // Accept if length is correct - let API verify
       return GtinParseResult(
         rawText: rawText,
-        gtin: normalizedGtin,
+        gtin: normalizedGtin, // Normalized for API
+        originalGtin: cleanText, // Original format for display
         symbology: 'Code128',
         isValid: true, // Allow to proceed, API will validate
       );
@@ -164,6 +174,7 @@ class GtinParser {
     return GtinParseResult(
       rawText: rawText,
       gtin: '',
+      originalGtin: '',
       symbology: 'Code128',
       isValid: false,
         error: 'Code128 does not contain valid GTIN',
@@ -178,6 +189,7 @@ class GtinParser {
       return GtinParseResult(
         rawText: rawText,
         gtin: '',
+        originalGtin: '',
         symbology: 'GS1-DM',
         isValid: false,
         error: 'No GTIN found in GS1 DataMatrix',
@@ -186,11 +198,12 @@ class GtinParser {
 
     // Normalize to GTIN-14 format if needed
     final normalizedGtin = gtin.length == 14 ? gtin : GtinValidator.normalizeToGtin14(gtin);
-    
+
     // Accept if we extracted a GTIN - API will validate
     return GtinParseResult(
       rawText: rawText,
-      gtin: normalizedGtin,
+      gtin: normalizedGtin, // Normalized for API
+      originalGtin: gtin, // Original extracted GTIN for display
       symbology: 'GS1-DM',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -203,6 +216,7 @@ class GtinParser {
       return GtinParseResult(
         rawText: rawText,
         gtin: '',
+        originalGtin: '',
         symbology: 'QR',
         isValid: false,
         error: 'QR code does not contain GS1 Application Identifiers',
@@ -215,6 +229,7 @@ class GtinParser {
       return GtinParseResult(
         rawText: rawText,
         gtin: '',
+        originalGtin: '',
         symbology: 'QR',
         isValid: false,
         error: 'No GTIN found in GS1 QR code',
@@ -223,11 +238,12 @@ class GtinParser {
 
     // Normalize to GTIN-14 format if needed
     final normalizedGtin = gtin.length == 14 ? gtin : GtinValidator.normalizeToGtin14(gtin);
-    
+
     // Accept if we extracted a GTIN - API will validate
     return GtinParseResult(
       rawText: rawText,
-      gtin: normalizedGtin,
+      gtin: normalizedGtin, // Normalized for API
+      originalGtin: gtin, // Original extracted GTIN for display
       symbology: 'QR',
       isValid: true, // Allow to proceed, API will validate
     );
@@ -292,7 +308,8 @@ class GtinParser {
       // Accept if length is correct - let API verify checksum and database
       return GtinParseResult(
         rawText: rawText,
-        gtin: normalizedGtin,
+        gtin: normalizedGtin, // Normalized for API
+        originalGtin: cleanText, // Original format for display
         symbology: gtinType,
         isValid: true, // Allow to proceed, API will validate
       );
@@ -309,7 +326,8 @@ class GtinParser {
         // Accept if we extracted a GTIN - API will validate
         return GtinParseResult(
           rawText: rawText,
-          gtin: normalizedGtin,
+          gtin: normalizedGtin, // Normalized for API
+          originalGtin: gtin, // Original extracted GTIN for display
           symbology: 'GS1',
           isValid: true, // Allow to proceed
         );
@@ -319,6 +337,7 @@ class GtinParser {
     return GtinParseResult(
       rawText: rawText,
       gtin: '',
+      originalGtin: '',
       symbology: symbology,
       isValid: false,
       error: 'Unsupported symbology: $symbology',
@@ -329,7 +348,8 @@ class GtinParser {
 /// Result of GTIN parsing operation
 class GtinParseResult {
   final String rawText;
-  final String gtin;
+  final String gtin; // Normalized GTIN-14 for API calls
+  final String originalGtin; // Original format for display
   final String symbology;
   final bool isValid;
   final String? error;
@@ -337,6 +357,7 @@ class GtinParseResult {
   const GtinParseResult({
     required this.rawText,
     required this.gtin,
+    required this.originalGtin,
     required this.symbology,
     required this.isValid,
     this.error,

@@ -27,38 +27,34 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      // Get verified drugs count (products in database)
+      // Get total unique users (from user_sessions table)
+      const { count: totalUsers } = await supabase
+        .from('user_sessions')
+        .select('*', { count: 'exact', head: true })
+        .catch(() => ({ count: 0 }))
+
+      // Get verified drugs count from verification_events
       const { count: verifiedCount } = await supabase
-        .from('products')
+        .from('verification_events')
         .select('*', { count: 'exact', head: true })
+        .eq('verification_result', 'verified')
+        .catch(() => ({ count: 0 }))
 
-      // Get unverified drugs count (reports that haven't been resolved)
+      // Get unverified drugs count from verification_events
       const { count: unverifiedCount } = await supabase
-        .from('reports')
+        .from('verification_events')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
+        .eq('verification_result', 'unverified')
+        .catch(() => ({ count: 0 }))
 
-      // Get total reports count
+      // Get total reports count (from reports table)
       const { count: totalReports } = await supabase
         .from('reports')
         .select('*', { count: 'exact', head: true })
-
-      // Note: User count would require a users table or auth.users
-      // For now, we'll use a placeholder or fetch from auth if available
-      let totalUsers = 0
-      try {
-        const { count: userCount } = await supabase
-          .from('auth.users')
-          .select('*', { count: 'exact', head: true })
-        totalUsers = userCount || 0
-      } catch (e) {
-        // If auth.users is not accessible, we'll need to create a users table
-        // For now, set to 0 or fetch from a custom users table
-        console.log('User count not available:', e)
-      }
+        .catch(() => ({ count: 0 }))
 
       setStats({
-        totalUsers: totalUsers,
+        totalUsers: totalUsers || 0,
         verifiedDrugs: verifiedCount || 0,
         unverifiedDrugs: unverifiedCount || 0,
         totalReports: totalReports || 0,
@@ -80,7 +76,7 @@ const Dashboard = () => {
       textColor: 'text-primary-700'
     },
     {
-      title: 'Verified Drugs',
+      title: 'Verified Scans/Entries',
       value: stats.verifiedDrugs,
       icon: CheckCircle,
       color: 'bg-green-500',
@@ -88,7 +84,7 @@ const Dashboard = () => {
       textColor: 'text-green-700'
     },
     {
-      title: 'Unverified Drugs',
+      title: 'Unverified Scans/Entries',
       value: stats.unverifiedDrugs,
       icon: XCircle,
       color: 'bg-orange-500',

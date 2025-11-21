@@ -57,19 +57,46 @@ const Pharmacies = () => {
     e.preventDefault()
     try {
       if (editingPharmacy) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('pharmacies')
           .update(formData)
           .eq('id', editingPharmacy.id)
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error('Update error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            formData
+          })
+          throw error
+        }
+        
+        if (!data || data.length === 0) {
+          alert('No pharmacy was updated. The pharmacy may not exist or you may not have permission.')
+          return
+        }
+        
         alert('Pharmacy updated successfully!')
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('pharmacies')
           .insert([formData])
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error('Insert error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            formData
+          })
+          throw error
+        }
+        
         alert('Pharmacy added successfully!')
       }
 
@@ -79,7 +106,10 @@ const Pharmacies = () => {
       fetchPharmacies()
     } catch (error) {
       console.error('Error saving pharmacy:', error)
-      alert('Error saving pharmacy: ' + error.message)
+      const errorMessage = error.message || 'Unknown error occurred'
+      const errorHint = error.hint ? `\n\nHint: ${error.hint}` : ''
+      const errorCode = error.code ? `\n\nError Code: ${error.code}` : ''
+      alert(`Error saving pharmacy: ${errorMessage}${errorHint}${errorCode}\n\nIf this persists, check your Supabase RLS policies.`)
     }
   }
 
@@ -105,17 +135,35 @@ const Pharmacies = () => {
     if (!confirm('Are you sure you want to delete this pharmacy?')) return
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('pharmacies')
         .delete()
         .eq('id', id)
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('Delete error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw error
+      }
+      
+      if (data && data.length === 0) {
+        alert('No pharmacy was deleted. The pharmacy may not exist or you may not have permission.')
+        return
+      }
+      
       alert('Pharmacy deleted successfully!')
       fetchPharmacies()
     } catch (error) {
       console.error('Error deleting pharmacy:', error)
-      alert('Error deleting pharmacy: ' + error.message)
+      const errorMessage = error.message || 'Unknown error occurred'
+      const errorHint = error.hint ? `\n\nHint: ${error.hint}` : ''
+      const errorCode = error.code ? `\n\nError Code: ${error.code}` : ''
+      alert(`Error deleting pharmacy: ${errorMessage}${errorHint}${errorCode}\n\nIf this persists, check your Supabase RLS policies.`)
     }
   }
 

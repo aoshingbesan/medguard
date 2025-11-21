@@ -3,8 +3,11 @@ class GtinScanResult {
   /// The raw decoded text from the barcode
   final String rawText;
 
-  /// The normalized GTIN-14 string
+  /// The normalized GTIN-14 string (for API calls)
   final String gtin;
+
+  /// The original GTIN format (for display)
+  final String originalGtin;
 
   /// The symbology that was detected (e.g., "EAN-13", "GS1-DM", "UPC-A")
   final String symbology;
@@ -18,6 +21,7 @@ class GtinScanResult {
   const GtinScanResult({
     required this.rawText,
     required this.gtin,
+    required this.originalGtin,
     required this.symbology,
     required this.scannedAt,
     required this.isValid,
@@ -25,7 +29,7 @@ class GtinScanResult {
 
   @override
   String toString() {
-    return 'GtinScanResult(rawText: $rawText, gtin: $gtin, symbology: $symbology, scannedAt: $scannedAt, isValid: $isValid)';
+    return 'GtinScanResult(rawText: $rawText, gtin: $gtin, originalGtin: $originalGtin, symbology: $symbology, scannedAt: $scannedAt, isValid: $isValid)';
   }
 
   @override
@@ -34,6 +38,7 @@ class GtinScanResult {
     return other is GtinScanResult &&
         other.rawText == rawText &&
         other.gtin == gtin &&
+        other.originalGtin == originalGtin &&
         other.symbology == symbology &&
         other.scannedAt == scannedAt &&
         other.isValid == isValid;
@@ -41,6 +46,6 @@ class GtinScanResult {
 
   @override
   int get hashCode {
-    return Object.hash(rawText, gtin, symbology, scannedAt, isValid);
+    return Object.hash(rawText, gtin, originalGtin, symbology, scannedAt, isValid);
   }
 }

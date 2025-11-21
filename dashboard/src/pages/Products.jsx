@@ -72,54 +72,92 @@ const Products = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      // Prepare data for insert/update - use actual database column names
-      const dataToSave = {
-        gtin: formData.gtin,
-        // Use actual database column names
-        product_brand_name: formData.product_name || undefined,
-        brand: formData.brand || undefined,
-        generic_name: formData.generic_name || undefined,
-        manufacturer_name: formData.manufacturer || undefined,
-        manufacturer_country: formData.country || undefined,
-        // Try registration_no first, fallback to rfda_reg_no
-        registration_no: formData.registration_no || undefined,
-        rfda_reg_no: formData.registration_no || undefined,
-        registration_date: formData.registration_date || undefined,
-        expiry_date: formData.license_expiry_date || undefined, // expiry_date is used for license expiry
-        license_expiry_date: formData.license_expiry_date || undefined,
-        dosage_form: formData.dosage_form || undefined,
-        dosage_strength: formData.strength || undefined,
-        strength: formData.strength || undefined,
-        pack_size: formData.pack_size || undefined,
-        shelf_life: formData.shelf_life || undefined,
-        packaging_type: formData.packaging_type || undefined,
-        marketing_authorization_holder: formData.marketing_authorization_holder || undefined,
-        marketing_auth_holder: formData.marketing_authorization_holder || undefined,
-        local_technical_representative: formData.local_technical_representative || undefined,
-        local_tech_rep: formData.local_technical_representative || undefined
-      }
+      // Prepare data for insert/update - use actual database column names from schema
+      // Actual column names: product_brand_name, generic_name, manufacturer_name, 
+      // manufacturer_country, registration_no, registration_date, license_expiry_date, dosage_form, 
+      // dosage_strength, pack_size, shelf_life, packaging_type, marketing_authorization_holder, local_technical_representative
+      const dataToSave = {}
       
-      // Remove undefined values
-      Object.keys(dataToSave).forEach(key => {
-        if (dataToSave[key] === undefined) {
-          delete dataToSave[key]
-        }
-      })
+      // All fields are required
+      dataToSave.gtin = formData.gtin
+      dataToSave.product_brand_name = formData.product_name
+      dataToSave.generic_name = formData.generic_name
+      dataToSave.manufacturer_name = formData.manufacturer
+      dataToSave.manufacturer_country = formData.country
+      dataToSave.registration_no = formData.registration_no
+      dataToSave.registration_date = formData.registration_date
+      dataToSave.license_expiry_date = formData.license_expiry_date
+      dataToSave.dosage_form = formData.dosage_form
+      dataToSave.dosage_strength = formData.strength
+      dataToSave.pack_size = formData.pack_size
+      dataToSave.shelf_life = formData.shelf_life
+      dataToSave.packaging_type = formData.packaging_type
+      dataToSave.marketing_authorization_holder = formData.marketing_authorization_holder
+      dataToSave.local_technical_representative = formData.local_technical_representative
 
       if (editingProduct) {
-        const { error } = await supabase
+        let data, error
+        
+        // Try update
+        const result = await supabase
           .from('products')
           .update(dataToSave)
           .eq('id', editingProduct.id)
+          .select()
+        
+        data = result.data
+        error = result.error
 
-        if (error) throw error
+        // If error is about missing column, log it for debugging
+        if (error && error.message && error.message.includes("Could not find") && error.message.includes("column")) {
+          console.error('Column error - check database schema matches expected columns:', error.message)
+        }
+
+        if (error) {
+          console.error('Update error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            dataToSave
+          })
+          throw error
+        }
+        
+        if (!data || data.length === 0) {
+          alert('No product was updated. The product may not exist or you may not have permission.')
+          return
+        }
+        
         alert('Product updated successfully!')
       } else {
-        const { error } = await supabase
+        let data, error
+        
+        // Try insert
+        const result = await supabase
           .from('products')
           .insert([dataToSave])
+          .select()
+        
+        data = result.data
+        error = result.error
 
-        if (error) throw error
+        // If error is about missing column, log it for debugging
+        if (error && error.message && error.message.includes("Could not find") && error.message.includes("column")) {
+          console.error('Column error - check database schema matches expected columns:', error.message)
+        }
+
+        if (error) {
+          console.error('Insert error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            dataToSave
+          })
+          throw error
+        }
+        
         alert('Product added successfully!')
       }
 
@@ -129,7 +167,10 @@ const Products = () => {
       fetchProducts()
     } catch (error) {
       console.error('Error saving product:', error)
-      alert('Error saving product: ' + error.message)
+      const errorMessage = error.message || 'Unknown error occurred'
+      const errorHint = error.hint ? `\n\nHint: ${error.hint}` : ''
+      const errorCode = error.code ? `\n\nError Code: ${error.code}` : ''
+      alert(`Error saving product: ${errorMessage}${errorHint}${errorCode}\n\nIf this persists, check your Supabase RLS policies.`)
     }
   }
 
@@ -176,17 +217,35 @@ const Products = () => {
     if (!confirm('Are you sure you want to delete this product?')) return
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .delete()
         .eq('id', id)
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('Delete error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw error
+      }
+      
+      if (data && data.length === 0) {
+        alert('No product was deleted. The product may not exist or you may not have permission.')
+        return
+      }
+      
       alert('Product deleted successfully!')
       fetchProducts()
     } catch (error) {
       console.error('Error deleting product:', error)
-      alert('Error deleting product: ' + error.message)
+      const errorMessage = error.message || 'Unknown error occurred'
+      const errorHint = error.hint ? `\n\nHint: ${error.hint}` : ''
+      const errorCode = error.code ? `\n\nError Code: ${error.code}` : ''
+      alert(`Error deleting product: ${errorMessage}${errorHint}${errorCode}\n\nIf this persists, check your Supabase RLS policies.`)
     }
   }
 
@@ -677,10 +736,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Brand
+                    Brand *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.brand}
                     onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -688,10 +748,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Generic Name
+                    Generic Name *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.generic_name}
                     onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -699,10 +760,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Manufacturer
+                    Manufacturer *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.manufacturer}
                     onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -710,10 +772,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
+                    Country *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -721,10 +784,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Registration Number
+                    Registration Number *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.registration_no}
                     onChange={(e) => setFormData({ ...formData, registration_no: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -732,10 +796,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Registration Date
+                    Registration Date *
                   </label>
                   <input
                     type="date"
+                    required
                     value={formData.registration_date}
                     onChange={(e) => setFormData({ ...formData, registration_date: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -743,10 +808,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    License Expiry Date
+                    License Expiry Date *
                   </label>
                   <input
                     type="date"
+                    required
                     value={formData.license_expiry_date}
                     onChange={(e) => setFormData({ ...formData, license_expiry_date: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -754,10 +820,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Dosage Form
+                    Dosage Form *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.dosage_form}
                     onChange={(e) => setFormData({ ...formData, dosage_form: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -765,10 +832,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Strength
+                    Strength *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.strength}
                     onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -776,10 +844,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Pack Size
+                    Pack Size *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.pack_size}
                     onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -787,10 +856,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expiry Date
+                    Expiry Date *
                   </label>
                   <input
                     type="date"
+                    required
                     value={formData.expiry_date}
                     onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -798,10 +868,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Shelf Life
+                    Shelf Life *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.shelf_life}
                     onChange={(e) => setFormData({ ...formData, shelf_life: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -809,10 +880,11 @@ const Products = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Packaging Type
+                    Packaging Type *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.packaging_type}
                     onChange={(e) => setFormData({ ...formData, packaging_type: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -820,10 +892,11 @@ const Products = () => {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Marketing Authorization Holder
+                    Marketing Authorization Holder *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.marketing_authorization_holder}
                     onChange={(e) => setFormData({ ...formData, marketing_authorization_holder: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
@@ -831,10 +904,11 @@ const Products = () => {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Local Technical Representative
+                    Local Technical Representative *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.local_technical_representative}
                     onChange={(e) => setFormData({ ...formData, local_technical_representative: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"

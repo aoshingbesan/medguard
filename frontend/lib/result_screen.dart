@@ -5,6 +5,7 @@ import 'simple_language_service.dart';
 import 'theme.dart';
 import 'history_storage.dart';
 import 'rfda_report_screen.dart';
+import 'widgets/academic_disclaimer.dart';
 
 class ResultScreen extends StatefulWidget {
   final bool verified;
@@ -100,8 +101,11 @@ class _ResultScreenState extends State<ResultScreen> {
               style: const TextStyle(color: Colors.black)),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: Column(
+        children: [
+          Expanded(
+            child: SafeArea(
+              child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -529,7 +533,11 @@ class _ResultScreenState extends State<ResultScreen> {
               const SizedBox(height: 32),
             ],
           ),
-        ),
+              ),
+            ),
+          ),
+          const AcademicDisclaimer(),
+        ],
       ),
     );
       },

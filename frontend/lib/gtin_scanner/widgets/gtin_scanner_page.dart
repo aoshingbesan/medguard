@@ -108,7 +108,8 @@ class _GtinScannerPageState extends State<GtinScannerPage> {
   void _showResultSheet(GtinParseResult parseResult) {
     final result = GtinScanResult(
       rawText: parseResult.rawText,
-      gtin: parseResult.gtin,
+      gtin: parseResult.gtin, // Normalized for API
+      originalGtin: parseResult.originalGtin, // Original for display
       symbology: parseResult.symbology,
       scannedAt: DateTime.now(),
       isValid: parseResult.isValid,
@@ -610,9 +611,9 @@ class _ResultBottomSheet extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // GTIN display
+          // GTIN display (show original format, not normalized)
           Text(
-            result.gtin,
+            result.originalGtin.isNotEmpty ? result.originalGtin : result.gtin,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2,

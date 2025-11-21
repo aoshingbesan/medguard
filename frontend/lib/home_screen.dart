@@ -8,6 +8,8 @@ import 'settings_screen.dart';
 import 'gtin_scanner/gtin_scanner.dart';
 import 'gtin_scanner/models/gtin_scan_result.dart';
 import 'api.dart';
+import 'analytics_service.dart';
+import 'widgets/academic_disclaimer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,9 +45,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-      // Verify the medicine using the GTIN
-      final apiResult = await Api.verify(result.gtin);
+      // Verify the medicine using the original GTIN format (not normalized)
+      // Use original format for API call since database likely stores original format
+      final gtinForApi = result.originalGtin.isNotEmpty ? result.originalGtin : result.gtin;
+      final apiResult = await Api.verify(gtinForApi);
       print('API Result: $apiResult');
+      print('GTIN used for API: $gtinForApi (original: ${result.originalGtin}, normalized: ${result.gtin})');
 
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
@@ -53,18 +58,43 @@ class _HomeScreenState extends State<HomeScreen> {
         // Check if the API returned a valid medicine
         if (apiResult['status'] == 'valid') {
           print('Medicine is VALID - showing success result');
+          // Use original GTIN for display, but keep normalized for API
+          final displayData = Map<String, dynamic>.from(apiResult);
+          displayData['gtin'] = result.originalGtin.isNotEmpty ? result.originalGtin : apiResult['gtin'];
+          
+          // Track analytics: verified scan
+          AnalyticsService.trackVerification(
+            gtin: gtinForApi,
+            method: 'scan',
+            result: 'verified',
+            source: apiResult['source'] ?? 'online',
+            productName: displayData['product']?.toString(),
+            manufacturer: displayData['manufacturer']?.toString(),
+          );
+          
           // Medicine is verified - show success result
           Navigator.pushNamed(
             context,
             '/result',
             arguments: {
               'verified': true,
-              'data': apiResult,
+              'data': displayData,
               'source': 'online',
             },
           );
         } else if (apiResult['status'] == 'warning') {
           print('Medicine is NOT FOUND - showing warning result');
+          // Use original GTIN for display
+          final displayGtin = result.originalGtin.isNotEmpty ? result.originalGtin : apiResult['gtin'];
+          
+          // Track analytics: unverified scan
+          AnalyticsService.trackVerification(
+            gtin: gtinForApi,
+            method: 'scan',
+            result: 'unverified',
+            source: apiResult['source'] ?? 'online',
+          );
+          
           // Medicine not found - show warning result
           Navigator.pushNamed(
             context,
@@ -72,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
             arguments: {
               'verified': false,
               'data': {
-                'gtin': apiResult['gtin'],
+                'gtin': displayGtin,
                 'product': 'Unknown Product',
                 'message': apiResult['message'],
               },
@@ -81,6 +111,13 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         } else {
           // API error
+          // Track analytics: error
+          AnalyticsService.trackVerification(
+            gtin: gtinForApi,
+            method: 'scan',
+            result: 'error',
+            source: apiResult['source'] ?? 'online',
+          );
           _showErrorDialog(apiResult['message'] ?? 'Verification failed');
         }
       }
@@ -170,10 +207,23 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     Widget body() {
-      if (_tab == 0) return homeBody();
-      if (_tab == 1) return const HistoryScreen();
-      if (_tab == 2) return const PharmaciesScreen();
-      return const SettingsScreen();
+      Widget content;
+      if (_tab == 0) {
+        content = homeBody();
+      } else if (_tab == 1) {
+        content = const HistoryScreen();
+      } else if (_tab == 2) {
+        content = const PharmaciesScreen();
+      } else {
+        content = const SettingsScreen();
+      }
+      
+      return Column(
+        children: [
+          Expanded(child: content),
+          const AcademicDisclaimer(),
+        ],
+      );
     }
 
     return Scaffold(

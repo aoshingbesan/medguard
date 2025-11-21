@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'offline_database.dart';
+import 'gtin_scanner/services/gtin_validator.dart';
 
 class Api {
   static const String _lastSyncKey = 'last_sync_timestamp';
@@ -291,6 +292,114 @@ class Api {
               'source': 'online',
               'timestamp': DateTime.now().millisecondsSinceEpoch,
             };
+          }
+        }
+        
+        // If original format didn't match, try normalized GTIN-14 format as fallback
+        // This handles cases where database might store normalized format
+        if (cleanGtin.length < 14) {
+          final normalizedGtin = GtinValidator.normalizeToGtin14(cleanGtin);
+          if (normalizedGtin != cleanGtin && normalizedGtin.isNotEmpty) {
+            debugPrint('Trying normalized GTIN-14 format: $normalizedGtin (original: $cleanGtin)');
+            try {
+              response = await _supabase
+                  .from('products')
+                  .select('*')
+                  .eq('gtin', normalizedGtin)
+                  .maybeSingle();
+              
+              if (response != null) {
+                debugPrint('✅ Found product using normalized GTIN-14 format');
+                // Use the same extraction logic as above
+                String _extractField(Map<String, dynamic> data, List<String> possibleKeys) {
+                  for (String key in possibleKeys) {
+                    if (data.containsKey(key)) {
+                      final value = data[key];
+                      if (value != null) {
+                        if (value is String && value.trim().isNotEmpty) {
+                          return value.trim();
+                        } else if (value is DateTime) {
+                          return value.toIso8601String().split('T')[0];
+                        } else if (value.toString().trim().isNotEmpty) {
+                          return value.toString().trim();
+                        }
+                      }
+                    }
+                  }
+                  final allKeys = data.keys.toList();
+                  for (String possibleKey in possibleKeys) {
+                    final lowerKey = possibleKey.toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+                    for (String actualKey in allKeys) {
+                      final lowerActualKey = actualKey.toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+                      if (lowerActualKey == lowerKey || 
+                          lowerActualKey.contains(lowerKey) || 
+                          lowerKey.contains(lowerActualKey)) {
+                        final value = data[actualKey];
+                        if (value != null) {
+                          if (value is String && value.trim().isNotEmpty) {
+                            return value.trim();
+                          } else if (value is DateTime) {
+                            return value.toIso8601String().split('T')[0];
+                          } else if (value.toString().trim().isNotEmpty) {
+                            return value.toString().trim();
+                          }
+                        }
+                      }
+                    }
+                  }
+                  return '';
+                }
+                
+                String _extractString(dynamic value) {
+                  if (value == null) return '';
+                  if (value is String) {
+                    final trimmed = value.trim();
+                    return trimmed.isEmpty ? '' : trimmed;
+                  }
+                  if (value is DateTime) return value.toIso8601String().split('T')[0];
+                  final str = value.toString().trim();
+                  return str.isEmpty ? '' : str;
+                }
+                
+                final productName = _extractField(response, ['product_name', 'productName', 'product', 'Product Name']);
+                final brand = _extractField(response, ['brand', 'Brand']);
+                final strength = _extractField(response, ['strength', 'Strength']);
+                final manufacturer = _extractField(response, ['manufacturer', 'Manufacturer']);
+                final rfdaRegNo = _extractField(response, ['registration_no', 'rfda_reg_no', 'rfdaRegNo', 'RFDA Reg No', 'registration_number']);
+                final licenseExpiryDate = _extractField(response, ['license_expiry_date', 'licenseExpiryDate', 'license_expiry_date', 'License Expiry Date']);
+                final marketingAuthHolder = _extractField(response, ['marketing_authorization_holder', 'marketing_auth_holder', 'marketingAuthHolder', 'Marketing Auth Holder']);
+                final localTechRep = _extractField(response, ['local_technical_representative', 'local_tech_rep', 'localTechRep', 'Local Tech Rep']);
+                
+                final finalProductName = productName.isNotEmpty ? productName : (brand.isNotEmpty ? brand : '');
+                final finalBrand = brand.isNotEmpty ? brand : (productName.isNotEmpty ? productName : '');
+                
+                return {
+                  'status': 'valid',
+                  'gtin': cleanGtin, // Return original format for display
+                  'product': finalProductName,
+                  'product_name': finalProductName,
+                  'brand': finalBrand,
+                  'genericName': _extractString(response['generic_name']),
+                  'manufacturer': manufacturer,
+                  'registrationNumber': rfdaRegNo,
+                  'dosageForm': _extractString(response['dosage_form']),
+                  'strength': strength,
+                  'pack_size': _extractString(response['pack_size']),
+                  'expiry_date': _extractString(response['expiry_date']),
+                  'shelf_life': _extractString(response['shelf_life']),
+                  'packaging_type': _extractString(response['packaging_type']),
+                  'marketing_authorization_holder': marketingAuthHolder,
+                  'local_technical_representative': localTechRep,
+                  'registration_date': _extractString(response['registration_date']),
+                  'license_expiry_date': licenseExpiryDate,
+                  'country': _extractString(response['country']),
+                  'source': 'online',
+                  'timestamp': DateTime.now().millisecondsSinceEpoch,
+                };
+              }
+            } catch (e) {
+              debugPrint('Error trying normalized GTIN format: $e');
+            }
           }
         }
         
