@@ -41,11 +41,12 @@ class AnalyticsService {
       final platform = Platform.isIOS ? 'ios' : 'android';
       
       // Check if device already exists
-      final { data: existingSession } = await _supabase
+      final response = await _supabase
           .from('user_sessions')
           .select('id, total_verifications')
           .eq('device_id', deviceId)
           .maybeSingle();
+      final existingSession = response.data;
 
       if (existingSession != null) {
         // Update last_seen_at
@@ -119,11 +120,12 @@ class AnalyticsService {
   /// Manually update verification count (fallback if RPC doesn't exist)
   static Future<void> _updateVerificationCount(String deviceId) async {
     try {
-      final { data: session } = await _supabase
+      final response = await _supabase
           .from('user_sessions')
           .select('total_verifications')
           .eq('device_id', deviceId)
           .single();
+      final session = response.data;
 
       final currentCount = (session?['total_verifications'] as int?) ?? 0;
       
