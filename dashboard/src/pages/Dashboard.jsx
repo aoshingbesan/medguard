@@ -28,30 +28,49 @@ const Dashboard = () => {
   const fetchStats = async () => {
     try {
       // Get total unique users (from user_sessions table)
-      const { count: totalUsers } = await supabase
+      const { count: totalUsers, error: usersError } = await supabase
         .from('user_sessions')
         .select('*', { count: 'exact', head: true })
-        .catch(() => ({ count: 0 }))
+      
+      if (usersError) {
+        console.error('Error fetching users:', usersError)
+      }
 
       // Get verified drugs count from verification_events
-      const { count: verifiedCount } = await supabase
+      const { count: verifiedCount, error: verifiedError } = await supabase
         .from('verification_events')
         .select('*', { count: 'exact', head: true })
         .eq('verification_result', 'verified')
-        .catch(() => ({ count: 0 }))
+      
+      if (verifiedError) {
+        console.error('Error fetching verified count:', verifiedError)
+      }
 
       // Get unverified drugs count from verification_events
-      const { count: unverifiedCount } = await supabase
+      const { count: unverifiedCount, error: unverifiedError } = await supabase
         .from('verification_events')
         .select('*', { count: 'exact', head: true })
         .eq('verification_result', 'unverified')
-        .catch(() => ({ count: 0 }))
+      
+      if (unverifiedError) {
+        console.error('Error fetching unverified count:', unverifiedError)
+      }
 
       // Get total reports count (from reports table)
-      const { count: totalReports } = await supabase
+      const { count: totalReports, error: reportsError } = await supabase
         .from('reports')
         .select('*', { count: 'exact', head: true })
-        .catch(() => ({ count: 0 }))
+      
+      if (reportsError) {
+        console.error('Error fetching reports count:', reportsError)
+      }
+
+      console.log('📊 Dashboard Stats:', {
+        totalUsers: totalUsers || 0,
+        verifiedCount: verifiedCount || 0,
+        unverifiedCount: unverifiedCount || 0,
+        totalReports: totalReports || 0
+      })
 
       setStats({
         totalUsers: totalUsers || 0,

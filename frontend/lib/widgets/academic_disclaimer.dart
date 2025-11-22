@@ -11,9 +11,9 @@ class AcademicDisclaimer extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: Colors.green.shade50,
         border: Border(
-          top: BorderSide(color: Colors.orange.shade200, width: 1),
+          top: BorderSide(color: Colors.green.shade200, width: 1),
         ),
       ),
       child: Row(
@@ -22,14 +22,14 @@ class AcademicDisclaimer extends StatelessWidget {
           Icon(
             Icons.info_outline,
             size: 16,
-            color: Colors.orange.shade700,
+            color: Colors.green.shade800,
           ),
           const SizedBox(width: 8),
           Text(
             'For Academic Demonstration Only',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.orange.shade700,
+              color: Colors.green.shade800,
               fontWeight: FontWeight.w500,
             ),
           ),
