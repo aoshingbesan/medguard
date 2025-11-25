@@ -179,8 +179,6 @@ const Products = () => {
     console.log('📝 Editing product with all fields:', product)
     console.log('📝 Available fields:', Object.keys(product))
     
-    setEditingProduct(product)
-    
     // Helper function to get value from multiple possible keys
     const getValue = (obj, ...keys) => {
       for (const key of keys) {
@@ -191,7 +189,8 @@ const Products = () => {
       return ''
     }
     
-    setFormData({
+    // Set form data first, then open modal
+    const newFormData = {
       gtin: getValue(product, 'gtin') || '',
       product_name: getValue(product, 'product_brand_name', 'product_name', 'name', 'product', 'Product Name') || '',
       brand: getValue(product, 'brand', 'Brand', 'product_brand_name') || '',
@@ -209,8 +208,17 @@ const Products = () => {
       packaging_type: getValue(product, 'packaging_type', 'packagingType', 'Packaging Type') || '',
       marketing_authorization_holder: getValue(product, 'marketing_authorization_holder', 'marketing_auth_holder', 'marketingAuthHolder', 'Marketing Auth Holder') || '',
       local_technical_representative: getValue(product, 'local_technical_representative', 'local_tech_rep', 'localTechRep', 'Local Tech Rep') || ''
-    })
-    setShowModal(true)
+    }
+    
+    console.log('📝 Setting form data:', newFormData)
+    
+    setEditingProduct(product)
+    setFormData(newFormData)
+    
+    // Use setTimeout to ensure formData is set before modal opens
+    setTimeout(() => {
+      setShowModal(true)
+    }, 0)
   }
 
   const handleDelete = async (id) => {
@@ -708,7 +716,7 @@ const Products = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form key={editingProduct?.id || 'new'} onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

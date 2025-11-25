@@ -1,17 +1,51 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   Building2, 
   Package, 
   FileText,
   Menu,
-  X
+  X,
+  LogOut,
+  User
 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [user, setUser] = useState(null)
   const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!supabase) return
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    if (!supabase) return
+    
+    try {
+      await supabase.auth.signOut()
+      navigate('/', { replace: true })
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -57,6 +91,25 @@ const Layout = ({ children }) => {
             )
           })}
         </nav>
+
+        {/* User Info & Logout */}
+        <div className="p-4 border-t border-gray-200">
+          {sidebarOpen && user && (
+            <div className="mb-3 px-4 py-2 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <User size={16} />
+                <span className="truncate">{user.email}</span>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <LogOut size={20} />
+            {sidebarOpen && <span className="font-medium">Sign Out</span>}
+          </button>
+        </div>
       </aside>
 
       {/* Main content */}

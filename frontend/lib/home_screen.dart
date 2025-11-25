@@ -231,15 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text(''),
         backgroundColor: kAppBg,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            ),
-          ),
-        ],
+        // Removed settings icon from AppBar - it's already in bottom navigation
       ),
       body: body(),
       bottomNavigationBar: BottomNavigationBar(

@@ -64,6 +64,7 @@ body {
 /* Input field styles - white background with light black border */
 input[type="text"],
 input[type="email"],
+input[type="password"],
 input[type="tel"],
 input[type="number"],
 input[type="date"],
@@ -78,6 +79,7 @@ select {
 
 input[type="text"]:focus,
 input[type="email"]:focus,
+input[type="password"]:focus,
 input[type="tel"]:focus,
 input[type="number"]:focus,
 input[type="date"]:focus,
@@ -91,8 +93,21 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(23, 111, 91, 0.2) !important;
 }
 
+/* Override browser autofill background for email and password fields */
+input[type="email"]:-webkit-autofill,
+input[type="email"]:-webkit-autofill:hover,
+input[type="email"]:-webkit-autofill:focus,
+input[type="password"]:-webkit-autofill,
+input[type="password"]:-webkit-autofill:hover,
+input[type="password"]:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  background-color: white !important;
+}
+
 input[type="text"]::placeholder,
 input[type="email"]::placeholder,
+input[type="password"]::placeholder,
 input[type="tel"]::placeholder,
 input[type="number"]::placeholder,
 input[type="url"]::placeholder,

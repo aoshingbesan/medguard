@@ -1,6 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
+import PublicRoute from './components/PublicRoute'
+import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Pharmacies from './pages/Pharmacies'
 import Products from './pages/Products'
@@ -36,15 +39,67 @@ function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/pharmacies" element={<Pharmacies />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/reports" element={<Reports />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          {/* Login is now the root route - redirects to dashboard if already logged in */}
+          <Route
+            path="/"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          {/* All dashboard routes are protected - redirect to login if not authenticated */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pharmacies"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Pharmacies />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/products"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Products />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Reports />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Catch-all route - redirect to login for any unknown routes */}
+          <Route
+            path="*"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+        </Routes>
       </Router>
     </ErrorBoundary>
   )

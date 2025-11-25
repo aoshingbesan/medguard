@@ -131,11 +131,11 @@ class Api {
             return str.isEmpty ? '' : str;
           }
           
-          // Try multiple possible column name variations
-          final productName = _extractField(response, ['product_name', 'productName', 'product', 'Product Name']);
-          final brand = _extractField(response, ['brand', 'Brand']);
-          final strength = _extractField(response, ['strength', 'Strength']);
-          final manufacturer = _extractField(response, ['manufacturer', 'Manufacturer']);
+          // Try multiple possible column name variations - use actual database column names first
+          final productName = _extractField(response, ['product_brand_name', 'product_name', 'productName', 'product', 'Product Name']);
+          final brand = _extractField(response, ['product_brand_name', 'brand', 'Brand']);
+          final strength = _extractField(response, ['dosage_strength', 'strength', 'Strength']);
+          final manufacturer = _extractField(response, ['manufacturer_name', 'manufacturer', 'Manufacturer']);
           // Registration Number: use registration_no (not rfda_reg_no)
           final rfdaRegNo = _extractField(response, ['registration_no', 'rfda_reg_no', 'rfdaRegNo', 'RFDA Reg No', 'registration_number']);
           final licenseExpiryDate = _extractField(response, ['license_expiry_date', 'licenseExpiryDate', 'license_expiry_date', 'License Expiry Date']);
@@ -146,7 +146,7 @@ class Api {
           
           // Log extracted values
           debugPrint('🔍 Extracted Values:');
-          debugPrint('  - Product Name: "$productName" (from field: product_name)');
+          debugPrint('  - Product Name: "$productName"');
           debugPrint('  - Brand: "$brand"');
           debugPrint('  - Strength: "$strength"');
           debugPrint('  - Manufacturer: "$manufacturer"');
@@ -155,27 +155,12 @@ class Api {
           debugPrint('  - Marketing Auth Holder: "$marketingAuthHolder"');
           debugPrint('  - Local Tech Rep: "$localTechRep"');
           
-          debugPrint('📊 Raw Response Values:');
-          debugPrint('  - GTIN: ${response['gtin']} (type: ${response['gtin']?.runtimeType})');
-          debugPrint('  - Product Name: ${response['product_name']} (type: ${response['product_name']?.runtimeType})');
-          debugPrint('  - Brand: ${response['brand']}');
-          debugPrint('  - Generic Name: ${response['generic_name']}');
-          debugPrint('  - Manufacturer: ${response['manufacturer']} (type: ${response['manufacturer']?.runtimeType})');
-          debugPrint('  - Registration No: ${response['registration_no']} (type: ${response['registration_no']?.runtimeType})');
-          debugPrint('  - RFDA Reg No (old): ${response['rfda_reg_no']} (type: ${response['rfda_reg_no']?.runtimeType})');
-          debugPrint('  - Dosage Form: ${response['dosage_form']}');
-          debugPrint('  - Strength: ${response['strength']} (type: ${response['strength']?.runtimeType})');
-          debugPrint('  - Pack Size: ${response['pack_size']}');
-          debugPrint('  - Expiry Date: ${response['expiry_date']}');
-          debugPrint('  - Shelf Life: ${response['shelf_life']}');
-          debugPrint('  - Packaging Type: ${response['packaging_type']}');
-          debugPrint('  - Marketing Authorization Holder: ${response['marketing_authorization_holder']} (type: ${response['marketing_authorization_holder']?.runtimeType})');
-          debugPrint('  - Marketing Auth Holder (old): ${response['marketing_auth_holder']} (type: ${response['marketing_auth_holder']?.runtimeType})');
-          debugPrint('  - Local Technical Representative: ${response['local_technical_representative']} (type: ${response['local_technical_representative']?.runtimeType})');
-          debugPrint('  - Local Tech Rep (old): ${response['local_tech_rep']} (type: ${response['local_tech_rep']?.runtimeType})');
-          debugPrint('  - Registration Date: ${response['registration_date']}');
-          debugPrint('  - License Expiry Date: ${response['license_expiry_date']} (type: ${response['license_expiry_date']?.runtimeType})');
-          debugPrint('  - Country: ${response['country']}');
+          debugPrint('📊 Raw Response Values (checking actual column names):');
+          debugPrint('  - product_brand_name: "${response['product_brand_name']}" (null: ${response['product_brand_name'] == null})');
+          debugPrint('  - manufacturer_name: "${response['manufacturer_name']}" (null: ${response['manufacturer_name'] == null})');
+          debugPrint('  - dosage_strength: "${response['dosage_strength']}" (null: ${response['dosage_strength'] == null})');
+          debugPrint('  - All response keys: ${response.keys.toList()}');
+          debugPrint('  - Full response for debugging: $response');
           
           
           // Use extracted values with fallbacks
@@ -225,18 +210,64 @@ class Api {
             
             // Helper function to safely extract field value with multiple column name attempts
             String _extractField(Map<String, dynamic> data, List<String> possibleKeys) {
+              debugPrint('  🔍 Extracting field, trying keys: $possibleKeys');
+              // First, try exact matches
               for (String key in possibleKeys) {
-                final value = data[key] ?? data[key.toLowerCase()] ?? data[key.toUpperCase()];
-                if (value != null) {
-                  if (value is String && value.trim().isNotEmpty) {
-                    return value.trim();
-                  } else if (value is DateTime) {
-                    return value.toIso8601String().split('T')[0]; // Format as YYYY-MM-DD
-                  } else if (value.toString().trim().isNotEmpty) {
-                    return value.toString().trim();
+                if (data.containsKey(key)) {
+                  final value = data[key];
+                  debugPrint('    - Checking key "$key": value = $value (type: ${value?.runtimeType}, null: ${value == null})');
+                  if (value != null) {
+                    if (value is String && value.trim().isNotEmpty) {
+                      debugPrint('  ✅ Found $key: "${value.trim()}"');
+                      return value.trim();
+                    } else if (value is DateTime) {
+                      final dateStr = value.toIso8601String().split('T')[0];
+                      debugPrint('  ✅ Found $key (date): "$dateStr"');
+                      return dateStr;
+                    } else if (value.toString().trim().isNotEmpty) {
+                      final str = value.toString().trim();
+                      debugPrint('  ✅ Found $key: "$str"');
+                      return str;
+                    } else {
+                      debugPrint('    - Value for "$key" is empty or whitespace');
+                    }
+                  } else {
+                    debugPrint('    - Value for "$key" is null');
+                  }
+                } else {
+                  debugPrint('    - Key "$key" not found in data');
+                }
+              }
+              
+              // Try case-insensitive matches
+              final allKeys = data.keys.toList();
+              for (String possibleKey in possibleKeys) {
+                final lowerKey = possibleKey.toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+                for (String actualKey in allKeys) {
+                  final lowerActualKey = actualKey.toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+                  if (lowerActualKey == lowerKey || 
+                      lowerActualKey.contains(lowerKey) || 
+                      lowerKey.contains(lowerActualKey)) {
+                    final value = data[actualKey];
+                    if (value != null) {
+                      if (value is String && value.trim().isNotEmpty) {
+                        debugPrint('  ✅ Found match for $possibleKey -> $actualKey: "${value.trim()}"');
+                        return value.trim();
+                      } else if (value is DateTime) {
+                        final dateStr = value.toIso8601String().split('T')[0];
+                        debugPrint('  ✅ Found match for $possibleKey -> $actualKey (date): "$dateStr"');
+                        return dateStr;
+                      } else if (value.toString().trim().isNotEmpty) {
+                        final str = value.toString().trim();
+                        debugPrint('  ✅ Found match for $possibleKey -> $actualKey: "$str"');
+                        return str;
+                      }
+                    }
                   }
                 }
               }
+              
+              debugPrint('  ❌ No match found for any of: $possibleKeys');
               return '';
             }
             
@@ -252,11 +283,12 @@ class Api {
               return str.isEmpty ? '' : str;
             }
             
-            // Try multiple possible column name variations
-            final productName = _extractField(response, ['product_name', 'productName', 'product', 'Product Name']);
-            final brand = _extractField(response, ['brand', 'Brand']);
-            final strength = _extractField(response, ['strength', 'Strength']);
-            final manufacturer = _extractField(response, ['manufacturer', 'Manufacturer']);
+            // Try multiple possible column name variations - use actual database column names first
+            debugPrint('🔍 Extracting fields from numeric match response...');
+            final productName = _extractField(response, ['product_brand_name', 'product_name', 'productName', 'product', 'Product Name']);
+            final brand = _extractField(response, ['product_brand_name', 'brand', 'Brand']);
+            final strength = _extractField(response, ['dosage_strength', 'strength', 'Strength']);
+            final manufacturer = _extractField(response, ['manufacturer_name', 'manufacturer', 'Manufacturer']);
             // Registration Number: use registration_no (not rfda_reg_no)
             final rfdaRegNo = _extractField(response, ['registration_no', 'rfda_reg_no', 'rfdaRegNo', 'RFDA Reg No', 'registration_number']);
             final licenseExpiryDate = _extractField(response, ['license_expiry_date', 'licenseExpiryDate', 'license_expiry_date', 'License Expiry Date']);
@@ -264,6 +296,12 @@ class Api {
             final marketingAuthHolder = _extractField(response, ['marketing_authorization_holder', 'marketing_auth_holder', 'marketingAuthHolder', 'Marketing Auth Holder']);
             // Local Representative: use local_technical_representative
             final localTechRep = _extractField(response, ['local_technical_representative', 'local_tech_rep', 'localTechRep', 'Local Tech Rep']);
+            
+            debugPrint('📊 Extracted values (numeric match):');
+            debugPrint('  - Product Name: "$productName"');
+            debugPrint('  - Brand: "$brand"');
+            debugPrint('  - Strength: "$strength"');
+            debugPrint('  - Manufacturer: "$manufacturer"');
             
             // Use extracted values with fallbacks
             final finalProductName = productName.isNotEmpty ? productName : (brand.isNotEmpty ? brand : '');
@@ -361,10 +399,10 @@ class Api {
                   return str.isEmpty ? '' : str;
                 }
                 
-                final productName = _extractField(response, ['product_name', 'productName', 'product', 'Product Name']);
-                final brand = _extractField(response, ['brand', 'Brand']);
-                final strength = _extractField(response, ['strength', 'Strength']);
-                final manufacturer = _extractField(response, ['manufacturer', 'Manufacturer']);
+                final productName = _extractField(response, ['product_brand_name', 'product_name', 'productName', 'product', 'Product Name']);
+                final brand = _extractField(response, ['product_brand_name', 'brand', 'Brand']);
+                final strength = _extractField(response, ['dosage_strength', 'strength', 'Strength']);
+                final manufacturer = _extractField(response, ['manufacturer_name', 'manufacturer', 'Manufacturer']);
                 final rfdaRegNo = _extractField(response, ['registration_no', 'rfda_reg_no', 'rfdaRegNo', 'RFDA Reg No', 'registration_number']);
                 final licenseExpiryDate = _extractField(response, ['license_expiry_date', 'licenseExpiryDate', 'license_expiry_date', 'License Expiry Date']);
                 final marketingAuthHolder = _extractField(response, ['marketing_authorization_holder', 'marketing_auth_holder', 'marketingAuthHolder', 'Marketing Auth Holder']);
@@ -432,31 +470,60 @@ class Api {
 
   static Future<Map<String, dynamic>> verifyOffline(String gtin) async {
     try {
+      debugPrint('🔍 Offline verification for GTIN: $gtin');
       final medicine = await OfflineDatabase.getMedicineByGtin(gtin);
 
       if (medicine != null) {
-        return {
+        debugPrint('📦 Medicine found in offline database:');
+        debugPrint('  - All keys: ${medicine.keys.toList()}');
+        debugPrint('  - product_name: ${medicine['product_name']}');
+        debugPrint('  - manufacturer: ${medicine['manufacturer']}');
+        debugPrint('  - strength: ${medicine['strength']}');
+        debugPrint('  - registration_number: ${medicine['registration_number']}');
+        debugPrint('  - marketing_auth_holder: ${medicine['marketing_auth_holder']}');
+        debugPrint('  - local_tech_rep: ${medicine['local_tech_rep']}');
+        
+        // Helper to safely get value
+        String _getValue(dynamic value) {
+          if (value == null) return '';
+          final str = value.toString().trim();
+          return str.isEmpty ? '' : str;
+        }
+        
+        final result = {
           'status': 'valid',
-          'gtin': medicine['gtin'],
-          'product': medicine['product_name'],
-          'genericName': medicine['generic_name'],
-          'manufacturer': medicine['manufacturer'],
-          'registrationNumber': medicine['registration_number'],
-          'dosageForm': medicine['dosage_form'],
-          'strength': medicine['strength'],
-          'pack_size': medicine['pack_size'],
-          'expiry_date': medicine['expiry_date'],
-          'shelf_life': medicine['shelf_life'],
-          'packaging_type': medicine['packaging_type'],
-          'marketing_authorization_holder': medicine['marketing_auth_holder'],
-          'local_technical_representative': medicine['local_tech_rep'],
-          'registration_date': medicine['registration_date'],
-          'license_expiry_date': medicine['license_expiry_date'],
-          'country': medicine['country'],
+          'gtin': _getValue(medicine['gtin']),
+          'product': _getValue(medicine['product_name']),
+          'product_name': _getValue(medicine['product_name']), // Add product_name for result screen
+          'brand': _getValue(medicine['product_name']), // Use product_name as brand fallback
+          'genericName': _getValue(medicine['generic_name']),
+          'manufacturer': _getValue(medicine['manufacturer']),
+          'registrationNumber': _getValue(medicine['registration_number']),
+          'dosageForm': _getValue(medicine['dosage_form']),
+          'strength': _getValue(medicine['strength']),
+          'pack_size': _getValue(medicine['pack_size']),
+          'expiry_date': _getValue(medicine['expiry_date']),
+          'shelf_life': _getValue(medicine['shelf_life']),
+          'packaging_type': _getValue(medicine['packaging_type']),
+          'marketing_authorization_holder': _getValue(medicine['marketing_auth_holder']),
+          'local_technical_representative': _getValue(medicine['local_tech_rep']),
+          'registration_date': _getValue(medicine['registration_date']),
+          'license_expiry_date': _getValue(medicine['license_expiry_date']),
+          'country': _getValue(medicine['country']),
           'source': 'offline',
           'timestamp': DateTime.now().millisecondsSinceEpoch,
         };
+        
+        debugPrint('📊 Extracted offline result:');
+        debugPrint('  - Product: "${result['product']}"');
+        debugPrint('  - Product Name: "${result['product_name']}"');
+        debugPrint('  - Manufacturer: "${result['manufacturer']}"');
+        debugPrint('  - Strength: "${result['strength']}"');
+        debugPrint('  - Registration Number: "${result['registrationNumber']}"');
+        
+        return result;
       } else {
+        debugPrint('❌ Medicine not found in offline database for GTIN: $gtin');
         return {
           'status': 'warning',
           'gtin': gtin,
@@ -467,6 +534,7 @@ class Api {
         };
       }
     } catch (e) {
+      debugPrint('❌ Offline verification error: $e');
       return {
         'status': 'error',
         'message': 'Offline verification error: $e',
@@ -518,21 +586,21 @@ class Api {
         for (final product in products) {
           final medicine = {
             'gtin': product['gtin']?.toString() ?? '',
-            'product_name': product['product_name'] ?? product['brand'] ?? '',
+            'product_name': product['product_brand_name'] ?? product['product_name'] ?? product['brand'] ?? '',
             'generic_name': product['generic_name'] ?? '',
-            'manufacturer': product['manufacturer'] ?? '',
-            'registration_number': product['rfda_reg_no'] ?? '',
+            'manufacturer': product['manufacturer_name'] ?? product['manufacturer'] ?? '',
+            'registration_number': product['registration_no'] ?? product['rfda_reg_no'] ?? '',
             'dosage_form': product['dosage_form'] ?? '',
-            'strength': product['strength'] ?? '',
+            'strength': product['dosage_strength'] ?? product['strength'] ?? '',
             'pack_size': product['pack_size'] ?? '',
             'expiry_date': product['expiry_date']?.toString() ?? '',
             'shelf_life': product['shelf_life'] ?? '',
             'packaging_type': product['packaging_type'] ?? '',
-            'marketing_auth_holder': product['marketing_auth_holder'] ?? '',
-            'local_tech_rep': product['local_tech_rep'] ?? '',
+            'marketing_auth_holder': product['marketing_authorization_holder'] ?? product['marketing_auth_holder'] ?? '',
+            'local_tech_rep': product['local_technical_representative'] ?? product['local_tech_rep'] ?? '',
             'registration_date': product['registration_date']?.toString() ?? '',
             'license_expiry_date': product['license_expiry_date']?.toString() ?? '',
-            'country': product['country'] ?? '',
+            'country': product['manufacturer_country'] ?? product['country'] ?? '',
             'last_updated': DateTime.now().millisecondsSinceEpoch,
             'is_verified': 1,
           };

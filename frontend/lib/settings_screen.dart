@@ -4,7 +4,6 @@ import 'simple_language_service.dart';
 import 'offline_database.dart';
 import 'api.dart';
 import 'theme.dart';
-import 'widgets/academic_disclaimer.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,20 +16,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _offlineModeEnabled = false;
   bool _isLoading = false;
   Map<String, dynamic>? _offlineStats;
-  Map<String, dynamic>? _connectionStatus;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    _testConnection();
-  }
-
-  Future<void> _testConnection() async {
-    final status = await Api.testConnection();
-    setState(() {
-      _connectionStatus = status;
-    });
   }
 
   Future<void> _loadSettings() async {
@@ -50,10 +40,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     try {
-      await OfflineDatabase.setOfflineModeEnabled(enabled);
+      // If enabling offline mode, always sync to get latest data
+      if (enabled) {
+        // Check if online before syncing
+        final isOnline = await Api.isOnline();
+        if (!isOnline) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No internet connection. Cannot sync data.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          // Still enable offline mode with existing data
+          await OfflineDatabase.setOfflineModeEnabled(enabled);
+          setState(() {
+            _offlineModeEnabled = enabled;
+          });
+          return;
+        }
 
-      if (enabled && !await OfflineDatabase.hasOfflineData()) {
-        // Sync data when enabling offline mode
+        // Show syncing message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Syncing data...'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Sync data automatically when enabling offline mode
         final result = await Api.syncOfflineData();
         if (result['status'] != 'success') {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -62,9 +77,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: Colors.red,
             ),
           );
+          // Don't enable offline mode if sync failed
           return;
         }
+
+        // Success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${languageService.dataSyncedSuccessfully ?? 'Data synced'} (${result['total_records'] ?? 0} records)'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
       }
+
+      // Set offline mode state
+      await OfflineDatabase.setOfflineModeEnabled(enabled);
+      
+      // Refresh stats after sync
+      await _loadSettings();
 
       setState(() {
         _offlineModeEnabled = enabled;
@@ -73,9 +104,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            enabled ? 'Offline Mode' : 'Online Mode',
+            enabled ? 'Offline Mode Enabled' : 'Online Mode Enabled',
           ),
           backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -204,43 +236,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Language Section
-                  _buildSectionHeader(languageService.language),
-                  _buildLanguageCard(languageService),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Language Section
+                        _buildSectionHeader(languageService.language),
+                        _buildLanguageCard(languageService),
 
-                  const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                  // Offline Mode Section
-                  _buildSectionHeader(languageService.offlineVerification),
-                  _buildOfflineModeCard(languageService),
+                        // Offline Mode Section
+                        _buildSectionHeader(languageService.offlineVerification),
+                        _buildOfflineModeCard(languageService),
 
-                  const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                  // Offline Data Section
-                  if (_offlineStats != null) ...[
-                    _buildSectionHeader('Offline Data'),
-                    _buildOfflineDataCard(languageService),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Connection Status Section
-                  _buildSectionHeader(languageService.databaseConnection),
-                  _buildConnectionCard(languageService),
-
-                  const SizedBox(height: 24),
-
-                  // About Section
-                  _buildSectionHeader(languageService.about),
-                  _buildAboutCard(languageService),
-                ],
-              ),
-            ),
+                        // About Section
+                        _buildSectionHeader(languageService.about),
+                        _buildAboutCard(languageService),
+                      ],
+                    ),
+                  ),
           ),
-          const AcademicDisclaimer(),
         ],
       ),
     );
@@ -286,7 +304,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             SwitchListTile(
               title: Text(languageService.offlineVerification),
-              subtitle: Text(languageService.enableOfflineVerification),
+              subtitle: Text(
+                _offlineModeEnabled 
+                  ? 'Data syncs automatically when enabled'
+                  : languageService.enableOfflineVerification,
+              ),
               value: _offlineModeEnabled,
               onChanged: (value) => _toggleOfflineMode(value),
               secondary: const Icon(Icons.offline_bolt),
@@ -296,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.sync),
                 title: Text(languageService.syncData),
-                subtitle: Text(languageService.lastSyncNever),
+                subtitle: Text('Manual sync (auto-syncs when toggled on)'),
                 onTap: () => _syncOfflineData(),
               ),
             ],
@@ -329,92 +351,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: Text(languageService.clearHistory),
               onTap: () => _clearOfflineData(),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildConnectionCard(SimpleLanguageService languageService) {
-    final status = _connectionStatus;
-    
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            if (status == null)
-              ListTile(
-                leading: const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                title: Text(languageService.testingConnection),
-              )
-            else ...[
-              ListTile(
-                leading: Icon(
-                  status['connected'] == true
-                      ? Icons.cloud_done
-                      : Icons.cloud_off,
-                  color: status['connected'] == true
-                      ? Colors.green
-                      : Colors.red,
-                ),
-                title: Text(
-                  status['connected'] == true
-                      ? languageService.connectedToSupabase
-                      : languageService.notConnected,
-                  style: TextStyle(
-                    color: status['connected'] == true
-                        ? Colors.green
-                        : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: Text(status['message'] ?? languageService.unknownStatus),
-              ),
-              if (status['connected'] == true) ...[
-                const Divider(),
-                if (status['products_table'] != null)
-                  ListTile(
-                    leading: const Icon(Icons.medication, size: 20),
-                    title: Text(languageService.productsTable),
-                    subtitle: Text(status['products_table'] ?? ''),
-                    dense: true,
-                  ),
-                if (status['pharmacies_table'] != null)
-                  ListTile(
-                    leading: const Icon(Icons.local_pharmacy, size: 20),
-                    title: Text(languageService.pharmaciesTable),
-                    subtitle: Text(status['pharmacies_table'] ?? ''),
-                    dense: true,
-                  ),
-              ] else if (status['error'] != null) ...[
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.error_outline, size: 20, color: Colors.red),
-                  title: Text(languageService.error),
-                  subtitle: Text(
-                    status['error'] ?? languageService.unknownError,
-                    style: const TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                  dense: true,
-                ),
-              ],
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.refresh),
-                title: Text(languageService.testConnection),
-                onTap: () {
-                  setState(() {
-                    _connectionStatus = null;
-                  });
-                  _testConnection();
-                },
-              ),
-            ],
           ],
         ),
       ),

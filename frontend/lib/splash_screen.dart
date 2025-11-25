@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
+import 'home_screen.dart';
 import 'widgets/academic_disclaimer.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -10,9 +11,12 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
+    debugPrint('🟢 SplashScreen: Initializing...');
     // Wait a frame to ensure the splash screen renders first
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _navigateToHome();
@@ -20,9 +24,45 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToHome() async {
-    await Future.delayed(const Duration(seconds: 5));
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+    if (_hasNavigated) return; // Prevent multiple navigations
+    
+    debugPrint('🟢 SplashScreen: Starting navigation timer...');
+    
+    // Wait 2 seconds minimum
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (!mounted || _hasNavigated) {
+      debugPrint('❌ SplashScreen: Not mounted or already navigated');
+      return;
+    }
+    
+    debugPrint('🟢 SplashScreen: Attempting navigation...');
+    _hasNavigated = true;
+    
+    try {
+      // Use direct navigation (more reliable)
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) {
+            debugPrint('✅ SplashScreen: Navigating to HomeScreen');
+            return const HomeScreen();
+          }),
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ SplashScreen: Navigation error: $e');
+      debugPrint('❌ SplashScreen: Stack: $stackTrace');
+      
+      // Try named route as fallback
+      if (mounted && !_hasNavigated) {
+        try {
+          Navigator.pushReplacementNamed(context, '/home');
+          debugPrint('✅ SplashScreen: Fallback navigation successful');
+        } catch (e2) {
+          debugPrint('❌ SplashScreen: All navigation methods failed: $e2');
+        }
+      }
     }
   }
 

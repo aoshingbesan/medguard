@@ -26,62 +26,103 @@ const Dashboard = () => {
   }, [])
 
   const fetchStats = async () => {
+    const startTime = performance.now()
     try {
-      // Get total unique users (from user_sessions table)
-      const { count: totalUsers, error: usersError } = await supabase
-        .from('user_sessions')
-        .select('*', { count: 'exact', head: true })
+      console.log('🔄 Fetching dashboard stats...')
       
+      // Run all queries in parallel for better performance
+      const [usersResult, verificationStatsResult, reportsResult] = await Promise.all([
+        // Get total unique users
+        supabase
+          .from('user_sessions')
+          .select('*', { count: 'exact', head: true }),
+        
+        // Get verification stats from view (faster than separate queries)
+        supabase
+          .from('verification_stats')
+          .select('*')
+          .single(),
+        
+        // Get total reports count
+        supabase
+          .from('reports')
+          .select('*', { count: 'exact', head: true })
+      ])
+
+      const { count: totalUsers, error: usersError } = usersResult
+      const { data: verificationStats, error: verificationError } = verificationStatsResult
+      const { count: totalReports, error: reportsError } = reportsResult
+
+      // Handle errors gracefully
       if (usersError) {
-        console.error('Error fetching users:', usersError)
+        console.error('❌ Error fetching users:', usersError)
       }
-
-      // Get verified drugs count from verification_events
-      const { count: verifiedCount, error: verifiedError } = await supabase
-        .from('verification_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('verification_result', 'verified')
       
-      if (verifiedError) {
-        console.error('Error fetching verified count:', verifiedError)
+      if (verificationError) {
+        console.error('❌ Error fetching verification stats:', verificationError)
+        // Fallback to individual queries if view doesn't work
+        console.log('⚠️ Falling back to individual queries...')
+        const [verifiedResult, unverifiedResult] = await Promise.all([
+          supabase
+            .from('verification_events')
+            .select('*', { count: 'exact', head: true })
+            .eq('verification_result', 'verified'),
+          supabase
+            .from('verification_events')
+            .select('*', { count: 'exact', head: true })
+            .eq('verification_result', 'unverified')
+        ])
+        
+        const verifiedCount = verifiedResult.count || 0
+        const unverifiedCount = unverifiedResult.count || 0
+        
+        const endTime = performance.now()
+        console.log(`✅ Stats fetched in ${(endTime - startTime).toFixed(2)}ms (fallback)`)
+        
+        setStats({
+          totalUsers: totalUsers || 0,
+          verifiedDrugs: verifiedCount,
+          unverifiedDrugs: unverifiedCount,
+          totalReports: totalReports || 0,
+          loading: false
+        })
+        return
       }
-
-      // Get unverified drugs count from verification_events
-      const { count: unverifiedCount, error: unverifiedError } = await supabase
-        .from('verification_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('verification_result', 'unverified')
-      
-      if (unverifiedError) {
-        console.error('Error fetching unverified count:', unverifiedError)
-      }
-
-      // Get total reports count (from reports table)
-      const { count: totalReports, error: reportsError } = await supabase
-        .from('reports')
-        .select('*', { count: 'exact', head: true })
       
       if (reportsError) {
-        console.error('Error fetching reports count:', reportsError)
+        console.error('❌ Error fetching reports count:', reportsError)
       }
 
-      console.log('📊 Dashboard Stats:', {
+      // Extract counts from verification_stats view
+      const verifiedCount = verificationStats?.total_verified || 0
+      const unverifiedCount = verificationStats?.total_unverified || 0
+
+      const endTime = performance.now()
+      console.log(`✅ Stats fetched in ${(endTime - startTime).toFixed(2)}ms`)
+      console.log('📊 Dashboard Stats Summary:', {
         totalUsers: totalUsers || 0,
-        verifiedCount: verifiedCount || 0,
-        unverifiedCount: unverifiedCount || 0,
+        verifiedCount,
+        unverifiedCount,
         totalReports: totalReports || 0
       })
 
       setStats({
         totalUsers: totalUsers || 0,
-        verifiedDrugs: verifiedCount || 0,
-        unverifiedDrugs: unverifiedCount || 0,
+        verifiedDrugs: verifiedCount,
+        unverifiedDrugs: unverifiedCount,
         totalReports: totalReports || 0,
         loading: false
       })
     } catch (error) {
-      console.error('Error fetching stats:', error)
-      setStats(prev => ({ ...prev, loading: false }))
+      console.error('❌ Fatal error fetching stats:', error)
+      // Always set loading to false, even on error
+      setStats({
+        totalUsers: 0,
+        verifiedDrugs: 0,
+        unverifiedDrugs: 0,
+        totalReports: 0,
+        loading: false
+      })
     }
   }
 
