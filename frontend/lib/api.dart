@@ -59,11 +59,6 @@ class Api {
             .maybeSingle();
         
         if (response != null) {
-          // Debug: Log full response structure and all fields
-          debugPrint('📦 Product data from Supabase (Full Response):');
-          debugPrint('  - Response keys: ${response.keys.toList()}');
-          debugPrint('  - Full response: $response');
-          
           // Helper function to safely extract field value with multiple column name attempts
           String _extractField(Map<String, dynamic> data, List<String> possibleKeys) {
             // First, try exact matches
@@ -72,16 +67,11 @@ class Api {
                 final value = data[key];
                 if (value != null) {
                   if (value is String && value.trim().isNotEmpty) {
-                    debugPrint('  ✅ Found $key: "${value.trim()}"');
                     return value.trim();
                   } else if (value is DateTime) {
-                    final dateStr = value.toIso8601String().split('T')[0];
-                    debugPrint('  ✅ Found $key (date): "$dateStr"');
-                    return dateStr;
+                    return value.toIso8601String().split('T')[0];
                   } else if (value.toString().trim().isNotEmpty) {
-                    final str = value.toString().trim();
-                    debugPrint('  ✅ Found $key: "$str"');
-                    return str;
+                    return value.toString().trim();
                   }
                 }
               }
@@ -99,23 +89,17 @@ class Api {
                   final value = data[actualKey];
                   if (value != null) {
                     if (value is String && value.trim().isNotEmpty) {
-                      debugPrint('  ✅ Found match for $possibleKey -> $actualKey: "${value.trim()}"');
                       return value.trim();
                     } else if (value is DateTime) {
-                      final dateStr = value.toIso8601String().split('T')[0];
-                      debugPrint('  ✅ Found match for $possibleKey -> $actualKey (date): "$dateStr"');
-                      return dateStr;
+                      return value.toIso8601String().split('T')[0];
                     } else if (value.toString().trim().isNotEmpty) {
-                      final str = value.toString().trim();
-                      debugPrint('  ✅ Found match for $possibleKey -> $actualKey: "$str"');
-                      return str;
+                      return value.toString().trim();
                     }
                   }
                 }
               }
             }
             
-            debugPrint('  ❌ No match found for any of: $possibleKeys');
             return '';
           }
           
@@ -143,25 +127,6 @@ class Api {
           final marketingAuthHolder = _extractField(response, ['marketing_authorization_holder', 'marketing_auth_holder', 'marketingAuthHolder', 'Marketing Auth Holder']);
           // Local Representative: use local_technical_representative
           final localTechRep = _extractField(response, ['local_technical_representative', 'local_tech_rep', 'localTechRep', 'Local Tech Rep']);
-          
-          // Log extracted values
-          debugPrint('🔍 Extracted Values:');
-          debugPrint('  - Product Name: "$productName"');
-          debugPrint('  - Brand: "$brand"');
-          debugPrint('  - Strength: "$strength"');
-          debugPrint('  - Manufacturer: "$manufacturer"');
-          debugPrint('  - RFDA Reg No: "$rfdaRegNo"');
-          debugPrint('  - License Expiry Date: "$licenseExpiryDate"');
-          debugPrint('  - Marketing Auth Holder: "$marketingAuthHolder"');
-          debugPrint('  - Local Tech Rep: "$localTechRep"');
-          
-          debugPrint('📊 Raw Response Values (checking actual column names):');
-          debugPrint('  - product_brand_name: "${response['product_brand_name']}" (null: ${response['product_brand_name'] == null})');
-          debugPrint('  - manufacturer_name: "${response['manufacturer_name']}" (null: ${response['manufacturer_name'] == null})');
-          debugPrint('  - dosage_strength: "${response['dosage_strength']}" (null: ${response['dosage_strength'] == null})');
-          debugPrint('  - All response keys: ${response.keys.toList()}');
-          debugPrint('  - Full response for debugging: $response');
-          
           
           // Use extracted values with fallbacks
           final finalProductName = productName.isNotEmpty ? productName : (brand.isNotEmpty ? brand : '');
@@ -203,39 +168,21 @@ class Api {
               .maybeSingle();
           
           if (response != null) {
-            // Debug: Log all response fields
-            debugPrint('📦 Product data from Supabase (numeric match):');
-            debugPrint('  - Response keys: ${response.keys.toList()}');
-            debugPrint('  - Full response: $response');
-            
             // Helper function to safely extract field value with multiple column name attempts
             String _extractField(Map<String, dynamic> data, List<String> possibleKeys) {
-              debugPrint('  🔍 Extracting field, trying keys: $possibleKeys');
               // First, try exact matches
               for (String key in possibleKeys) {
                 if (data.containsKey(key)) {
                   final value = data[key];
-                  debugPrint('    - Checking key "$key": value = $value (type: ${value?.runtimeType}, null: ${value == null})');
                   if (value != null) {
                     if (value is String && value.trim().isNotEmpty) {
-                      debugPrint('  ✅ Found $key: "${value.trim()}"');
                       return value.trim();
                     } else if (value is DateTime) {
-                      final dateStr = value.toIso8601String().split('T')[0];
-                      debugPrint('  ✅ Found $key (date): "$dateStr"');
-                      return dateStr;
+                      return value.toIso8601String().split('T')[0];
                     } else if (value.toString().trim().isNotEmpty) {
-                      final str = value.toString().trim();
-                      debugPrint('  ✅ Found $key: "$str"');
-                      return str;
-                    } else {
-                      debugPrint('    - Value for "$key" is empty or whitespace');
+                      return value.toString().trim();
                     }
-                  } else {
-                    debugPrint('    - Value for "$key" is null');
                   }
-                } else {
-                  debugPrint('    - Key "$key" not found in data');
                 }
               }
               
@@ -251,23 +198,17 @@ class Api {
                     final value = data[actualKey];
                     if (value != null) {
                       if (value is String && value.trim().isNotEmpty) {
-                        debugPrint('  ✅ Found match for $possibleKey -> $actualKey: "${value.trim()}"');
                         return value.trim();
                       } else if (value is DateTime) {
-                        final dateStr = value.toIso8601String().split('T')[0];
-                        debugPrint('  ✅ Found match for $possibleKey -> $actualKey (date): "$dateStr"');
-                        return dateStr;
+                        return value.toIso8601String().split('T')[0];
                       } else if (value.toString().trim().isNotEmpty) {
-                        final str = value.toString().trim();
-                        debugPrint('  ✅ Found match for $possibleKey -> $actualKey: "$str"');
-                        return str;
+                        return value.toString().trim();
                       }
                     }
                   }
                 }
               }
               
-              debugPrint('  ❌ No match found for any of: $possibleKeys');
               return '';
             }
             
@@ -284,7 +225,6 @@ class Api {
             }
             
             // Try multiple possible column name variations - use actual database column names first
-            debugPrint('🔍 Extracting fields from numeric match response...');
             final productName = _extractField(response, ['product_brand_name', 'product_name', 'productName', 'product', 'Product Name']);
             final brand = _extractField(response, ['product_brand_name', 'brand', 'Brand']);
             final strength = _extractField(response, ['dosage_strength', 'strength', 'Strength']);
@@ -296,12 +236,6 @@ class Api {
             final marketingAuthHolder = _extractField(response, ['marketing_authorization_holder', 'marketing_auth_holder', 'marketingAuthHolder', 'Marketing Auth Holder']);
             // Local Representative: use local_technical_representative
             final localTechRep = _extractField(response, ['local_technical_representative', 'local_tech_rep', 'localTechRep', 'Local Tech Rep']);
-            
-            debugPrint('📊 Extracted values (numeric match):');
-            debugPrint('  - Product Name: "$productName"');
-            debugPrint('  - Brand: "$brand"');
-            debugPrint('  - Strength: "$strength"');
-            debugPrint('  - Manufacturer: "$manufacturer"');
             
             // Use extracted values with fallbacks
             final finalProductName = productName.isNotEmpty ? productName : (brand.isNotEmpty ? brand : '');
@@ -347,7 +281,6 @@ class Api {
                   .maybeSingle();
               
               if (response != null) {
-                debugPrint('✅ Found product using normalized GTIN-14 format');
                 // Use the same extraction logic as above
                 String _extractField(Map<String, dynamic> data, List<String> possibleKeys) {
                   for (String key in possibleKeys) {
@@ -470,19 +403,9 @@ class Api {
 
   static Future<Map<String, dynamic>> verifyOffline(String gtin) async {
     try {
-      debugPrint('🔍 Offline verification for GTIN: $gtin');
       final medicine = await OfflineDatabase.getMedicineByGtin(gtin);
 
       if (medicine != null) {
-        debugPrint('📦 Medicine found in offline database:');
-        debugPrint('  - All keys: ${medicine.keys.toList()}');
-        debugPrint('  - product_name: ${medicine['product_name']}');
-        debugPrint('  - manufacturer: ${medicine['manufacturer']}');
-        debugPrint('  - strength: ${medicine['strength']}');
-        debugPrint('  - registration_number: ${medicine['registration_number']}');
-        debugPrint('  - marketing_auth_holder: ${medicine['marketing_auth_holder']}');
-        debugPrint('  - local_tech_rep: ${medicine['local_tech_rep']}');
-        
         // Helper to safely get value
         String _getValue(dynamic value) {
           if (value == null) return '';
@@ -490,7 +413,7 @@ class Api {
           return str.isEmpty ? '' : str;
         }
         
-        final result = {
+        return {
           'status': 'valid',
           'gtin': _getValue(medicine['gtin']),
           'product': _getValue(medicine['product_name']),
@@ -513,17 +436,7 @@ class Api {
           'source': 'offline',
           'timestamp': DateTime.now().millisecondsSinceEpoch,
         };
-        
-        debugPrint('📊 Extracted offline result:');
-        debugPrint('  - Product: "${result['product']}"');
-        debugPrint('  - Product Name: "${result['product_name']}"');
-        debugPrint('  - Manufacturer: "${result['manufacturer']}"');
-        debugPrint('  - Strength: "${result['strength']}"');
-        debugPrint('  - Registration Number: "${result['registrationNumber']}"');
-        
-        return result;
       } else {
-        debugPrint('❌ Medicine not found in offline database for GTIN: $gtin');
         return {
           'status': 'warning',
           'gtin': gtin,
@@ -534,7 +447,6 @@ class Api {
         };
       }
     } catch (e) {
-      debugPrint('❌ Offline verification error: $e');
       return {
         'status': 'error',
         'message': 'Offline verification error: $e',

@@ -189,8 +189,21 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
 
       try {
         await controller.initialize();
+        
+        // Verify controller is actually initialized
+        if (!controller.value.isInitialized) {
+          await controller.dispose();
+          setState(() {
+            _error = 'Camera failed to initialize. Please try again.';
+          });
+          return;
+        }
       } catch (e) {
-        await controller.dispose();
+        try {
+          await controller.dispose();
+        } catch (_) {
+          // Ignore disposal errors
+        }
         debugPrint('Error initializing camera: $e');
         
         // Check if it's a permission error
@@ -209,33 +222,53 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
       }
 
       if (!mounted) {
-        await controller.dispose();
+        try {
+          await controller.dispose();
+        } catch (_) {
+          // Ignore disposal errors
+        }
         return;
       }
 
       // Show camera preview and capture
-      final image = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => _CameraPreview(
-            controller: controller,
+      XFile? capturedImage;
+      try {
+        final result = await Navigator.push<XFile>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => _CameraPreview(
+              controller: controller,
+            ),
           ),
-        ),
-      );
+        );
+        capturedImage = result;
+      } catch (e) {
+        debugPrint('Error in camera preview: $e');
+      } finally {
+        // Always dispose controller after preview is closed
+        try {
+          if (controller.value.isInitialized) {
+            await controller.dispose();
+          }
+        } catch (e) {
+          debugPrint('Error disposing controller: $e');
+        }
+      }
 
-      if (image != null) {
+      if (capturedImage != null && mounted) {
         setState(() {
-          _capturedImage = image;
+          _capturedImage = capturedImage;
           _error = null; // Clear any previous errors
         });
       }
-
-      await controller.dispose();
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error in _takePhoto: $e');
-      setState(() {
-        _error = 'Error taking photo: ${e.toString()}. Please ensure camera permissions are granted in Settings.';
-      });
+      debugPrint('Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _error = 'Error taking photo: ${e.toString()}. Please ensure camera permissions are granted in Settings.';
+        });
+      }
     }
   }
 
@@ -864,8 +897,78 @@ class _CameraPreview extends StatefulWidget {
 }
 
 class _CameraPreviewState extends State<_CameraPreview> {
+  bool _isInitialized = false;
+  bool _isDisposed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialization();
+  }
+
+  Future<void> _checkInitialization() async {
+    if (widget.controller.value.isInitialized) {
+      setState(() {
+        _isInitialized = true;
+      });
+    } else {
+      // Wait a bit for initialization
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (mounted && widget.controller.value.isInitialized) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    // Don't dispose controller here - parent will handle it
+    super.dispose();
+  }
+
+  Future<void> _handleClose() async {
+    if (!_isDisposed && mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> _handleCapture() async {
+    if (_isDisposed || !widget.controller.value.isInitialized) {
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      return;
+    }
+
+    try {
+      final image = await widget.controller.takePicture();
+      if (mounted && !_isDisposed) {
+        Navigator.pop(context, image);
+      }
+    } catch (e) {
+      debugPrint('Error taking picture: $e');
+      if (mounted && !_isDisposed) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized || !widget.controller.value.isInitialized) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -875,7 +978,7 @@ class _CameraPreviewState extends State<_CameraPreview> {
             top: 40,
             left: 20,
             child: IconButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: _handleClose,
               icon: const Icon(
                 Icons.close,
                 color: Colors.white,
@@ -889,12 +992,7 @@ class _CameraPreviewState extends State<_CameraPreview> {
             right: 0,
             child: Center(
               child: FloatingActionButton(
-                onPressed: () async {
-                  final image = await widget.controller.takePicture();
-                  if (mounted) {
-                    Navigator.pop(context, image);
-                  }
-                },
+                onPressed: _handleCapture,
                 backgroundColor: Colors.white,
                 child: const Icon(
                   Icons.camera_alt,
