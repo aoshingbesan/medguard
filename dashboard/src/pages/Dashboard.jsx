@@ -26,103 +26,40 @@ const Dashboard = () => {
   }, [])
 
   const fetchStats = async () => {
-    const startTime = performance.now()
     try {
-      console.log('🔄 Fetching dashboard stats...')
-      
-      // Run all queries in parallel for better performance
-      const [usersResult, verificationStatsResult, reportsResult] = await Promise.all([
-        // Get total unique users
+      // Run all queries in parallel for faster loading
+      const [usersResult, verifiedResult, unverifiedResult, reportsResult] = await Promise.all([
         supabase
           .from('user_sessions')
           .select('*', { count: 'exact', head: true }),
-        
-        // Get verification stats from view (faster than separate queries)
         supabase
-          .from('verification_stats')
-          .select('*')
-          .single(),
-        
-        // Get total reports count
+          .from('verification_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('verification_result', 'verified'),
+        supabase
+          .from('verification_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('verification_result', 'unverified'),
         supabase
           .from('reports')
           .select('*', { count: 'exact', head: true })
       ])
 
-      const { count: totalUsers, error: usersError } = usersResult
-      const { data: verificationStats, error: verificationError } = verificationStatsResult
-      const { count: totalReports, error: reportsError } = reportsResult
-
-      // Handle errors gracefully
-      if (usersError) {
-        console.error('❌ Error fetching users:', usersError)
-      }
-      
-      if (verificationError) {
-        console.error('❌ Error fetching verification stats:', verificationError)
-        // Fallback to individual queries if view doesn't work
-        console.log('⚠️ Falling back to individual queries...')
-        const [verifiedResult, unverifiedResult] = await Promise.all([
-          supabase
-            .from('verification_events')
-            .select('*', { count: 'exact', head: true })
-            .eq('verification_result', 'verified'),
-          supabase
-            .from('verification_events')
-            .select('*', { count: 'exact', head: true })
-            .eq('verification_result', 'unverified')
-        ])
-        
-        const verifiedCount = verifiedResult.count || 0
-        const unverifiedCount = unverifiedResult.count || 0
-        
-        const endTime = performance.now()
-        console.log(`✅ Stats fetched in ${(endTime - startTime).toFixed(2)}ms (fallback)`)
-        
-        setStats({
-          totalUsers: totalUsers || 0,
-          verifiedDrugs: verifiedCount,
-          unverifiedDrugs: unverifiedCount,
-          totalReports: totalReports || 0,
-          loading: false
-        })
-        return
-      }
-      
-      if (reportsError) {
-        console.error('❌ Error fetching reports count:', reportsError)
-      }
-
-      // Extract counts from verification_stats view
-      const verifiedCount = verificationStats?.total_verified || 0
-      const unverifiedCount = verificationStats?.total_unverified || 0
-
-      const endTime = performance.now()
-      console.log(`✅ Stats fetched in ${(endTime - startTime).toFixed(2)}ms`)
-      console.log('📊 Dashboard Stats Summary:', {
-        totalUsers: totalUsers || 0,
-        verifiedCount,
-        unverifiedCount,
-        totalReports: totalReports || 0
-      })
+      // Extract counts, default to 0 on error
+      const totalUsers = usersResult.error ? 0 : (usersResult.count || 0)
+      const verifiedCount = verifiedResult.error ? 0 : (verifiedResult.count || 0)
+      const unverifiedCount = unverifiedResult.error ? 0 : (unverifiedResult.count || 0)
+      const totalReports = reportsResult.error ? 0 : (reportsResult.count || 0)
 
       setStats({
-        totalUsers: totalUsers || 0,
+        totalUsers,
         verifiedDrugs: verifiedCount,
         unverifiedDrugs: unverifiedCount,
-        totalReports: totalReports || 0,
+        totalReports,
         loading: false
       })
     } catch (error) {
-      console.error('❌ Fatal error fetching stats:', error)
-      // Always set loading to false, even on error
-      setStats({
-        totalUsers: 0,
-        verifiedDrugs: 0,
-        unverifiedDrugs: 0,
-        totalReports: 0,
-        loading: false
-      })
+      setStats(prev => ({ ...prev, loading: false }))
     }
   }
 
@@ -163,8 +100,10 @@ const Dashboard = () => {
 
   if (stats.loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <p className="text-gray-600 text-sm">Loading dashboard data...</p>
+        <p className="text-gray-500 text-xs">If this takes too long, check RLS policies in Supabase</p>
       </div>
     )
   }

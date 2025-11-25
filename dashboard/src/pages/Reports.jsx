@@ -15,120 +15,83 @@ const Reports = () => {
   }
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [selectedReport, setSelectedReport] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
   const [viewingImage, setViewingImage] = useState(null)
 
   useEffect(() => {
-    fetchReports()
+    let cancelled = false
+    
+    const loadReports = async () => {
+      if (cancelled) return
+      await fetchReports()
+    }
+    
+    loadReports()
+    
+    return () => {
+      cancelled = true
+    }
   }, [filterStatus])
 
   const fetchReports = async () => {
-    // Set a timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.warn('⚠️ Fetch reports timeout - setting loading to false')
-      setLoading(false)
-      setReports([])
-    }, 10000) // 10 second timeout
-
     try {
-      console.log('🔄 Fetching reports...', { filterStatus })
+      setLoading(true)
+      setError('')
       
-      if (!supabase) {
-        console.error('❌ Supabase not configured')
-        clearTimeout(timeoutId)
-        setLoading(false)
-        setReports([])
-        return
-      }
-
       let query = supabase
         .from('reports')
         .select('*')
         .order('created_at', { ascending: false })
+        .limit(1000)
 
       if (filterStatus !== 'all') {
         query = query.eq('status', filterStatus)
       }
 
-      console.log('📤 Executing query...')
-      const { data, error, count } = await query
-      clearTimeout(timeoutId)
+      const { data, error } = await query
 
       if (error) {
-        console.error('❌ Error fetching reports:', error)
-        console.error('Error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        })
-        setReports([])
-        setLoading(false)
-        // Show user-friendly error message
-        if (error.code === 'PGRST116' || error.message?.includes('permission') || error.message?.includes('RLS')) {
-          console.error('🔒 RLS Policy Error - Reports table access denied')
-          alert('Access denied. Please check Row Level Security policies for the reports table.')
+        if (error.message?.includes('permission denied') || 
+            error.message?.includes('RLS') || 
+            error.code === 'PGRST301' || 
+            error.code === '42501' ||
+            error.message?.includes('row-level security') ||
+            error.message?.includes('permission')) {
+          setError('Reports table is blocked by Row Level Security. Please disable RLS in Supabase SQL Editor.')
         } else {
-          alert('Error fetching reports: ' + error.message)
+          setError(error.message || 'Error loading reports')
         }
+        setReports([])
         return
       }
       
-      console.log('✅ Query completed')
-      console.log('📊 Response data:', data)
-      console.log('📊 Data type:', typeof data)
-      console.log('📊 Is array:', Array.isArray(data))
-      console.log('📊 Data length:', data?.length)
-      console.log('📊 First item:', data?.[0])
-      
-      if (data && Array.isArray(data)) {
-        console.log('✅ Reports fetched successfully:', data.length, 'reports')
-        setReports(data)
-      } else {
-        console.warn('⚠️ Unexpected data format:', data)
-        setReports([])
-      }
-      setLoading(false)
+      setReports(data || [])
+      setError('')
     } catch (error) {
-      clearTimeout(timeoutId)
-      console.error('❌ Fatal error fetching reports:', error)
+      setError(error.message || 'Error loading reports')
       setReports([])
+    } finally {
       setLoading(false)
-      alert('Error fetching reports: ' + (error.message || 'Unknown error'))
     }
   }
 
   const handleStatusUpdate = async (reportId, newStatus) => {
     try {
-      console.log('🔄 Updating report status:', { reportId, newStatus })
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('reports')
         .update({ status: newStatus })
         .eq('id', reportId)
-        .select()
 
-      if (error) {
-        console.error('❌ Error updating report status:', error)
-        console.error('Error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        })
-        throw error
-      }
-      
-      console.log('✅ Report status updated:', data)
+      if (error) throw error
       alert('Report status updated successfully!')
       fetchReports()
       if (selectedReport && selectedReport.id === reportId) {
         setSelectedReport({ ...selectedReport, status: newStatus })
       }
     } catch (error) {
-      console.error('❌ Fatal error updating report status:', error)
-      alert('Error updating report status: ' + (error.message || 'Unknown error'))
+      alert('Error updating report status: ' + error.message)
     }
   }
 
@@ -174,17 +137,29 @@ const Reports = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
           <p className="text-gray-500 text-sm mt-1">Manage drug verification reports</p>
         </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
           className="px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm"
-          >
-            <option value="all">All Reports</option>
-            <option value="pending">Pending</option>
-            <option value="resolved">Resolved</option>
-            <option value="rejected">Rejected</option>
-          </select>
+        >
+          <option value="all">All Reports</option>
+          <option value="pending">Pending</option>
+          <option value="resolved">Resolved</option>
+          <option value="rejected">Rejected</option>
+        </select>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800 font-medium mb-1">Error Loading Reports</p>
+            <p className="text-xs text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
+      
 
       {/* Reports Table */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

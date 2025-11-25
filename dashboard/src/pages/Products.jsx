@@ -33,7 +33,6 @@ const Products = () => {
     dosage_form: '',
     strength: '',
     pack_size: '',
-    expiry_date: '',
     shelf_life: '',
     packaging_type: '',
     marketing_authorization_holder: '',
@@ -54,15 +53,9 @@ const Products = () => {
 
       if (error) throw error
       
-      // Debug: Log first product to see what columns we're getting
-      if (data && data.length > 0) {
-        console.log('📦 Sample product data from backend:', data[0])
-        console.log('📦 All column names:', Object.keys(data[0]))
-      }
       
       setProducts(data || [])
     } catch (error) {
-      console.error('Error fetching products:', error)
       alert('Error fetching products: ' + error.message)
     } finally {
       setLoading(false)
@@ -108,19 +101,8 @@ const Products = () => {
         data = result.data
         error = result.error
 
-        // If error is about missing column, log it for debugging
-        if (error && error.message && error.message.includes("Could not find") && error.message.includes("column")) {
-          console.error('Column error - check database schema matches expected columns:', error.message)
-        }
 
         if (error) {
-          console.error('Update error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-            dataToSave
-          })
           throw error
         }
         
@@ -142,19 +124,8 @@ const Products = () => {
         data = result.data
         error = result.error
 
-        // If error is about missing column, log it for debugging
-        if (error && error.message && error.message.includes("Could not find") && error.message.includes("column")) {
-          console.error('Column error - check database schema matches expected columns:', error.message)
-        }
 
         if (error) {
-          console.error('Insert error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-            dataToSave
-          })
           throw error
         }
         
@@ -166,7 +137,6 @@ const Products = () => {
       resetForm()
       fetchProducts()
     } catch (error) {
-      console.error('Error saving product:', error)
       const errorMessage = error.message || 'Unknown error occurred'
       const errorHint = error.hint ? `\n\nHint: ${error.hint}` : ''
       const errorCode = error.code ? `\n\nError Code: ${error.code}` : ''
@@ -175,9 +145,6 @@ const Products = () => {
   }
 
   const handleEdit = (product) => {
-    // Debug: Log all product fields
-    console.log('📝 Editing product with all fields:', product)
-    console.log('📝 Available fields:', Object.keys(product))
     
     // Helper function to get value from multiple possible keys
     const getValue = (obj, ...keys) => {
@@ -203,14 +170,11 @@ const Products = () => {
       dosage_form: getValue(product, 'dosage_form', 'dosageForm', 'Dosage Form') || '',
       strength: getValue(product, 'dosage_strength', 'strength', 'Strength') || '',
       pack_size: getValue(product, 'pack_size', 'packSize', 'Pack Size') || '',
-      expiry_date: getValue(product, 'expiry_date', 'expiryDate', 'Expiry Date') || '',
       shelf_life: getValue(product, 'shelf_life', 'shelfLife', 'Shelf Life') || '',
       packaging_type: getValue(product, 'packaging_type', 'packagingType', 'Packaging Type') || '',
       marketing_authorization_holder: getValue(product, 'marketing_authorization_holder', 'marketing_auth_holder', 'marketingAuthHolder', 'Marketing Auth Holder') || '',
       local_technical_representative: getValue(product, 'local_technical_representative', 'local_tech_rep', 'localTechRep', 'Local Tech Rep') || ''
     }
-    
-    console.log('📝 Setting form data:', newFormData)
     
     setEditingProduct(product)
     setFormData(newFormData)
@@ -232,12 +196,6 @@ const Products = () => {
         .select()
 
       if (error) {
-        console.error('Delete error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
         throw error
       }
       
@@ -249,7 +207,6 @@ const Products = () => {
       alert('Product deleted successfully!')
       fetchProducts()
     } catch (error) {
-      console.error('Error deleting product:', error)
       const errorMessage = error.message || 'Unknown error occurred'
       const errorHint = error.hint ? `\n\nHint: ${error.hint}` : ''
       const errorCode = error.code ? `\n\nError Code: ${error.code}` : ''
@@ -271,7 +228,6 @@ const Products = () => {
       dosage_form: '',
       strength: '',
       pack_size: '',
-      expiry_date: '',
       shelf_life: '',
       packaging_type: '',
       marketing_authorization_holder: '',
@@ -611,14 +567,6 @@ const Products = () => {
                     <p className="text-sm text-gray-900 mt-1">{selectedProduct.packaging_type || 'N/A'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Expiry Date</label>
-                    <p className="text-sm text-gray-900 mt-1">
-                      {selectedProduct.expiry_date 
-                        ? new Date(selectedProduct.expiry_date).toLocaleDateString() 
-                        : 'N/A'}
-                    </p>
-                  </div>
-                  <div>
                     <label className="text-sm font-medium text-gray-500">Shelf Life</label>
                     <p className="text-sm text-gray-900 mt-1">{selectedProduct.shelf_life || 'N/A'}</p>
                   </div>
@@ -671,17 +619,6 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Raw Data (for debugging) */}
-              <details className="mt-4">
-                <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900">
-                  View Raw Data (Debug)
-                </summary>
-                <div className="mt-2 bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto max-h-64">
-                  <pre className="text-xs">
-                    {JSON.stringify(selectedProduct, null, 2)}
-                  </pre>
-                </div>
-              </details>
 
               {/* Actions */}
               <div className="flex gap-3 pt-4">
@@ -859,18 +796,6 @@ const Products = () => {
                     required
                     value={formData.pack_size}
                     onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expiry Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.expiry_date}
-                    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500 text-black"
                   />
                 </div>

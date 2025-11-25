@@ -46,7 +46,6 @@ const Pharmacies = () => {
       if (error) throw error
       setPharmacies(data || [])
     } catch (error) {
-      console.error('Error fetching pharmacies:', error)
       alert('Error fetching pharmacies: ' + error.message)
     } finally {
       setLoading(false)
@@ -64,13 +63,6 @@ const Pharmacies = () => {
           .select()
 
         if (error) {
-          console.error('Update error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-            formData
-          })
           throw error
         }
         
@@ -87,13 +79,6 @@ const Pharmacies = () => {
           .select()
 
         if (error) {
-          console.error('Insert error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-            formData
-          })
           throw error
         }
         
@@ -105,7 +90,6 @@ const Pharmacies = () => {
       resetForm()
       fetchPharmacies()
     } catch (error) {
-      console.error('Error saving pharmacy:', error)
       const errorMessage = error.message || 'Unknown error occurred'
       const errorHint = error.hint ? `\n\nHint: ${error.hint}` : ''
       const errorCode = error.code ? `\n\nError Code: ${error.code}` : ''
@@ -142,12 +126,6 @@ const Pharmacies = () => {
         .select()
 
       if (error) {
-        console.error('Delete error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
         throw error
       }
       
@@ -159,7 +137,6 @@ const Pharmacies = () => {
       alert('Pharmacy deleted successfully!')
       fetchPharmacies()
     } catch (error) {
-      console.error('Error deleting pharmacy:', error)
       const errorMessage = error.message || 'Unknown error occurred'
       const errorHint = error.hint ? `\n\nHint: ${error.hint}` : ''
       const errorCode = error.code ? `\n\nError Code: ${error.code}` : ''

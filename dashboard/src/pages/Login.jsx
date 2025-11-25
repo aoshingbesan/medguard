@@ -10,16 +10,23 @@ const Login = () => {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
+  if (!supabase) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-6 border border-red-200">
+          <h1 className="text-xl font-bold text-gray-900 mb-4">Configuration Error</h1>
+          <p className="text-gray-600 mb-4">
+            Supabase credentials are missing. Please check your <code className="bg-gray-100 px-2 py-1 rounded">.env</code> file.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-
-    if (!supabase) {
-      setError('Supabase is not configured. Please check your environment variables.')
-      setLoading(false)
-      return
-    }
 
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -34,23 +41,22 @@ const Login = () => {
       }
 
       if (data?.session) {
-        // Successful login - navigate to dashboard
+        // Successful login - PublicRoute will handle redirect to dashboard
         navigate('/dashboard', { replace: true })
       }
     } catch (err) {
-      console.error('Login error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      setError(err.message || 'An error occurred during login')
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-xl p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-full mb-4">
-            <LogIn className="text-white" size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
+            <LogIn className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">MedGuard Admin</h1>
           <p className="text-gray-600">Sign in to access the dashboard</p>
@@ -59,8 +65,8 @@ const Login = () => {
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-            <p className="text-sm text-red-700">{error}</p>
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-800">{error}</p>
           </div>
         )}
 
@@ -73,7 +79,7 @@ const Login = () => {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="text-gray-400" size={20} />
+                <Mail className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 id="email"
@@ -95,7 +101,7 @@ const Login = () => {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="text-gray-400" size={20} />
+                <Lock className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 id="password"
@@ -114,26 +120,26 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
           >
             {loading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Signing in...
-              </span>
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Signing in...</span>
+              </>
             ) : (
-              'Sign In'
+              <>
+                <LogIn className="w-5 h-5" />
+                <span>Sign In</span>
+              </>
             )}
           </button>
         </form>
 
-        {/* Footer Note */}
+        {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
-            Contact your administrator if you need access
+            MedGuard Medicine Verification System
           </p>
         </div>
       </div>
