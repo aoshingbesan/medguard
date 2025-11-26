@@ -81,7 +81,7 @@ const Pharmacies = () => {
         if (error) {
           throw error
         }
-        
+
         alert('Pharmacy added successfully!')
       }
 

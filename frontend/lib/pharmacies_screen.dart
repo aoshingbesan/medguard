@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'simple_language_service.dart';
@@ -417,53 +418,121 @@ class _PharmacySheet extends StatelessWidget {
                         final lon = p.longitude!;
                         final pharmacyName = Uri.encodeComponent(p.name);
                         
-                        // Try multiple URI schemes for maximum compatibility
-                        final uris = [
-                          // Android: geo URI scheme (most universal - opens default map app)
-                          Uri.parse('geo:$lat,$lon'),
-                          // Android: geo URI with label (alternative format)
-                          Uri.parse('geo:0,0?q=$lat,$lon($pharmacyName)'),
-                          // Android: Google Maps directions intent
-                          Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lon'),
-                          // Android: Google Maps search
-                          Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon'),
-                          // Web fallback
-                          Uri.parse('https://maps.google.com/?q=$lat,$lon'),
-                        ];
+                        // Platform-specific URI schemes
+                        List<Uri> uris;
                         
+                        if (Platform.isIOS) {
+                          // iOS: Try Google Maps app first, then Apple Maps, then web
+                          uris = [
+                            // Google Maps app (iOS)
+                            Uri.parse('comgooglemaps://?daddr=$lat,$lon&directionsmode=driving'),
+                            // Google Maps app alternative
+                            Uri.parse('comgooglemaps://?q=$lat,$lon'),
+                            // Apple Maps (iOS native)
+                            Uri.parse('maps://?daddr=$lat,$lon&dirflg=d'),
+                            // Apple Maps alternative
+                            Uri.parse('maps://?q=$lat,$lon'),
+                            // Web fallback - Google Maps directions
+                            Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lon'),
+                            // Web fallback - Google Maps search
+                            Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon'),
+                          ];
+                        } else {
+                          // Android: Try geo URI first, then web Google Maps (web always works)
+                          uris = [
+                            // Android: geo URI scheme (opens default map app if available)
+                            Uri.parse('geo:$lat,$lon'),
+                            // Android: geo URI with label
+                            Uri.parse('geo:0,0?q=$lat,$lon($pharmacyName)'),
+                            // Web Google Maps directions (always works, no app needed)
+                            Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lon'),
+                            // Web Google Maps search (fallback)
+                            Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon'),
+                            // Simple web fallback
+                            Uri.parse('https://maps.google.com/?q=$lat,$lon'),
+                          ];
+                        }
+                        
+                        // Try app schemes first, then web URLs (which should always work)
+                        bool triedAppSchemes = false;
                         for (final uri in uris) {
                           try {
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              launched = true;
-                              break;
+                            // For app schemes (geo://, comgooglemaps://, maps://)
+                            if (uri.scheme != 'https' && uri.scheme != 'http') {
+                              triedAppSchemes = true;
+                              try {
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  launched = true;
+                                  debugPrint('✅ Successfully launched maps app: $uri');
+                                  break;
+                                }
+                              } catch (e) {
+                                debugPrint('❌ Error checking/launching app URI $uri: $e');
+                                // Continue to next URI
+                                continue;
+                              }
+                            } else {
+                              // For web URLs, always try to launch (they should work in browser)
+                              try {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                launched = true;
+                                debugPrint('✅ Successfully launched web maps: $uri');
+                                break;
+                              } catch (e) {
+                                debugPrint('❌ Error launching web URI $uri: $e');
+                                // Continue to next web URL
+                                continue;
+                              }
                             }
                           } catch (e) {
-                            debugPrint('Error launching URI $uri: $e');
+                            debugPrint('❌ Unexpected error with URI $uri: $e');
                             continue;
                           }
                         }
                       }
                       
                       if (!launched && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(languageService.cannotOpenMaps),
-                            action: SnackBarAction(
-                              label: languageService.openInBrowser,
-                              onPressed: () async {
-                                if (p.latitude != null && p.longitude != null) {
-                                  final webUri = Uri.parse(
-                                    'https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}'
-                                  );
-                                  if (await canLaunchUrl(webUri)) {
-                                    await launchUrl(webUri, mode: LaunchMode.externalApplication);
-                                  }
-                                }
-                              },
-                            ),
-                          ),
-                        );
+                        // Last resort: try web Google Maps directly with multiple modes
+                        if (p.latitude != null && p.longitude != null) {
+                          final webUris = [
+                            Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}'),
+                            Uri.parse('https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}'),
+                            Uri.parse('https://maps.google.com/?q=${p.latitude},${p.longitude}'),
+                          ];
+                          
+                          for (final webUri in webUris) {
+                            try {
+                              // Try external application first (opens in browser)
+                              await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                              launched = true;
+                              debugPrint('✅ Opened web Google Maps: $webUri');
+                              break;
+                            } catch (e) {
+                              debugPrint('❌ Failed with externalApplication, trying platformDefault: $e');
+                              try {
+                                // Fallback to platform default
+                                await launchUrl(webUri, mode: LaunchMode.platformDefault);
+                                launched = true;
+                                debugPrint('✅ Opened web Google Maps with platformDefault: $webUri');
+                                break;
+                              } catch (e2) {
+                                debugPrint('❌ Failed with platformDefault: $e2');
+                                continue;
+                              }
+                            }
+                          }
+                          
+                          if (!launched) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Unable to open maps. Please check your internet connection and try again.'),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          }
+                        }
                       }
                     },
                     icon: const Icon(Icons.directions_rounded),

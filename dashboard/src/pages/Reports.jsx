@@ -137,16 +137,16 @@ const Reports = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
           <p className="text-gray-500 text-sm mt-1">Manage drug verification reports</p>
         </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
           className="px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm"
-        >
-          <option value="all">All Reports</option>
-          <option value="pending">Pending</option>
-          <option value="resolved">Resolved</option>
-          <option value="rejected">Rejected</option>
-        </select>
+          >
+            <option value="all">All Reports</option>
+            <option value="pending">Pending</option>
+            <option value="resolved">Resolved</option>
+            <option value="rejected">Rejected</option>
+          </select>
       </div>
 
       {/* Error Message */}

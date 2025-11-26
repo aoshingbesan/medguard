@@ -196,13 +196,13 @@ class Api {
                       lowerActualKey.contains(lowerKey) || 
                       lowerKey.contains(lowerActualKey)) {
                     final value = data[actualKey];
-                    if (value != null) {
-                      if (value is String && value.trim().isNotEmpty) {
-                        return value.trim();
-                      } else if (value is DateTime) {
+                if (value != null) {
+                  if (value is String && value.trim().isNotEmpty) {
+                    return value.trim();
+                  } else if (value is DateTime) {
                         return value.toIso8601String().split('T')[0];
-                      } else if (value.toString().trim().isNotEmpty) {
-                        return value.toString().trim();
+                  } else if (value.toString().trim().isNotEmpty) {
+                    return value.toString().trim();
                       }
                     }
                   }

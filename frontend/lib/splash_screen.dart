@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen> {
     
     try {
       // Use direct navigation (more reliable)
-      if (mounted) {
+    if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) {
@@ -57,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen> {
       // Try named route as fallback
       if (mounted && !_hasNavigated) {
         try {
-          Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/home');
           debugPrint('✅ SplashScreen: Fallback navigation successful');
         } catch (e2) {
           debugPrint('❌ SplashScreen: All navigation methods failed: $e2');

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Users, CheckCircle, XCircle, FileText, TrendingUp } from 'lucide-react'
+import { Users, CheckCircle, XCircle, FileText, TrendingUp, Activity, Shield, AlertTriangle } from 'lucide-react'
 
 const Dashboard = () => {
   if (!supabase) {
@@ -68,73 +68,90 @@ const Dashboard = () => {
       title: 'Total Users',
       value: stats.totalUsers,
       icon: Users,
-      color: 'bg-primary-600',
-      bgColor: 'bg-primary-50',
-      textColor: 'text-primary-700'
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      textColor: 'text-gray-900',
+      borderColor: 'border-blue-200'
     },
     {
       title: 'Verified Scans/Entries',
       value: stats.verifiedDrugs,
-      icon: CheckCircle,
-      color: 'bg-green-500',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-700'
+      icon: Shield,
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600',
+      textColor: 'text-gray-900',
+      borderColor: 'border-green-200'
     },
     {
       title: 'Unverified Scans/Entries',
       value: stats.unverifiedDrugs,
-      icon: XCircle,
-      color: 'bg-orange-500',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-700'
+      icon: AlertTriangle,
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-600',
+      textColor: 'text-gray-900',
+      borderColor: 'border-orange-200'
     },
     {
       title: 'Total Reports',
       value: stats.totalReports,
       icon: FileText,
-      color: 'bg-purple-500',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-700'
+      iconBg: 'bg-purple-100',
+      iconColor: 'text-purple-600',
+      textColor: 'text-gray-900',
+      borderColor: 'border-purple-200'
     },
   ]
 
   if (stats.loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        <p className="text-gray-600 text-sm">Loading dashboard data...</p>
-        <p className="text-gray-500 text-xs">If this takes too long, check RLS policies in Supabase</p>
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 border-t-primary-600"></div>
+        </div>
+        <p className="text-gray-600 text-sm font-medium">Loading dashboard data...</p>
       </div>
     )
   }
 
+  const verificationRate = stats.verifiedDrugs > 0
+    ? ((stats.verifiedDrugs / (stats.verifiedDrugs + stats.unverifiedDrugs)) * 100).toFixed(1)
+    : 0
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Overview of MedGuard system statistics</p>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Activity className="text-primary-600" size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 text-sm mt-1">Overview of MedGuard system statistics</p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (
             <div
               key={index}
-              className={`${stat.bgColor} rounded-xl p-6 shadow-sm border border-gray-200`}
+              className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className={`text-sm font-medium ${stat.textColor} mb-1`}>
+                  <p className="text-sm font-medium text-gray-600 mb-1">
                     {stat.title}
                   </p>
                   <p className={`text-3xl font-bold ${stat.textColor}`}>
                     {stat.value.toLocaleString()}
                   </p>
                 </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <Icon className="text-white" size={24} />
+                <div className={`${stat.iconBg} p-3 rounded-lg`}>
+                  <Icon className={stat.iconColor} size={24} />
                 </div>
               </div>
             </div>
@@ -142,10 +159,10 @@ const Dashboard = () => {
         })}
       </div>
 
-      {/* Additional Info */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      {/* System Status */}
+      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
-          <TrendingUp className="text-primary-600" size={24} />
+          <TrendingUp className="text-primary-600" size={22} />
           <h2 className="text-xl font-semibold text-gray-900">System Status</h2>
         </div>
         <div className="space-y-3">
@@ -157,15 +174,13 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <span className="text-gray-700">Verification Rate</span>
-            <span className="text-gray-900 font-semibold">
-              {stats.verifiedDrugs > 0
-                ? ((stats.verifiedDrugs / (stats.verifiedDrugs + stats.unverifiedDrugs)) * 100).toFixed(1)
-                : 0}%
-            </span>
+            <span className="text-gray-900 font-semibold">{verificationRate}%</span>
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-700">Pending Reports</span>
-            <span className="text-gray-900 font-semibold">{stats.unverifiedDrugs}</span>
+            <span className="text-gray-700">Total Verifications</span>
+            <span className="text-gray-900 font-semibold">
+              {(stats.verifiedDrugs + stats.unverifiedDrugs).toLocaleString()}
+            </span>
           </div>
         </div>
       </div>

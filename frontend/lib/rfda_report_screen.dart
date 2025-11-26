@@ -112,7 +112,43 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
 
   Future<void> _takePhoto() async {
     try {
-      // Try to access cameras first - this is the most reliable way to check permissions on iOS
+      // First, check and request camera permission BEFORE trying to access cameras
+      PermissionStatus cameraStatus = await Permission.camera.status;
+      debugPrint('Camera permission status: $cameraStatus');
+      
+      if (!cameraStatus.isGranted) {
+        if (cameraStatus.isPermanentlyDenied) {
+          setState(() {
+            _error = 'Camera permission is permanently denied. Please enable it in Settings > Medguard > Camera.';
+          });
+          try {
+            await openAppSettings();
+          } catch (_) {
+            // Ignore if settings can't be opened
+          }
+          return;
+        }
+        
+        // Request permission first
+        cameraStatus = await Permission.camera.request();
+        debugPrint('Camera permission after request: $cameraStatus');
+        
+        // Wait a moment for permission to be fully granted
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        // Re-check status after request
+        cameraStatus = await Permission.camera.status;
+        debugPrint('Camera permission re-checked: $cameraStatus');
+        
+        if (!cameraStatus.isGranted) {
+          setState(() {
+            _error = 'Camera permission is required. Please grant camera permission in your device settings.';
+          });
+          return;
+        }
+      }
+      
+      // Now try to access cameras after permission is granted
       List<CameraDescription> cameras;
       try {
         cameras = await availableCameras();
@@ -120,54 +156,15 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
       } catch (e) {
         debugPrint('Error getting cameras: $e');
         
-        // If camera access fails, check and request permissions
-        PermissionStatus cameraStatus = await Permission.camera.status;
-        debugPrint('Camera permission status after error: $cameraStatus');
-        
-        if (!cameraStatus.isGranted) {
-          if (cameraStatus.isPermanentlyDenied) {
-            setState(() {
-              _error = 'Camera permission is permanently denied. Please enable it in Settings > Medguard > Camera.';
-            });
-            // Offer to open settings
-            try {
-              await openAppSettings();
-            } catch (_) {
-              // Ignore if settings can't be opened
-            }
-            return;
-          }
-          
-          // Request permission
-          cameraStatus = await Permission.camera.request();
-          debugPrint('Camera permission after request: $cameraStatus');
-          
-          // Re-check status after request
-          cameraStatus = await Permission.camera.status;
-          debugPrint('Camera permission re-checked: $cameraStatus');
-          
-          if (!cameraStatus.isGranted) {
-            setState(() {
-              _error = 'Camera permission is required. Please grant camera permission in your device settings.';
-            });
-            return;
-          }
-          
-          // Try again after granting permission
-          try {
-            cameras = await availableCameras();
-            debugPrint('Available cameras after permission grant: ${cameras.length}');
-          } catch (e2) {
-            debugPrint('Error getting cameras after permission: $e2');
-            setState(() {
-              _error = 'Unable to access camera. Please restart the app after granting permission.';
-            });
-            return;
-          }
-        } else {
-          // Permission is granted but camera access failed - might be in use
+        // If still failing after permission granted, wait a bit and try again
+        await Future.delayed(const Duration(milliseconds: 500));
+        try {
+          cameras = await availableCameras();
+          debugPrint('Available cameras after retry: ${cameras.length}');
+        } catch (e2) {
+          debugPrint('Error getting cameras after retry: $e2');
           setState(() {
-            _error = 'Unable to access camera. Please ensure camera is not being used by another app.';
+            _error = 'Unable to access camera. Please ensure camera is not being used by another app and try again.';
           });
           return;
         }
@@ -183,8 +180,9 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
       final camera = cameras.first;
       final controller = CameraController(
         camera,
-        ResolutionPreset.high,
+        ResolutionPreset.medium, // Use medium instead of high to reduce memory usage
         enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.jpeg,
       );
 
       try {
@@ -242,16 +240,47 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
           ),
         );
         capturedImage = result;
-      } catch (e) {
-        debugPrint('Error in camera preview: $e');
+      } catch (e, stackTrace) {
+        debugPrint('❌ Error in camera preview: $e');
+        debugPrint('Stack trace: $stackTrace');
       } finally {
         // Always dispose controller after preview is closed
+        // Add longer delay to ensure all camera operations (including file writing) are complete
+        await Future.delayed(const Duration(milliseconds: 500));
+        
         try {
           if (controller.value.isInitialized) {
+            // Stop the camera before disposing
+            try {
+              await controller.stopImageStream();
+            } catch (_) {
+              // Ignore if stream wasn't started
+            }
+            
             await controller.dispose();
+            debugPrint('✅ Camera controller disposed successfully');
           }
         } catch (e) {
-          debugPrint('Error disposing controller: $e');
+          debugPrint('⚠️ Error disposing controller: $e');
+          // Try to dispose again after a longer delay
+          try {
+            await Future.delayed(const Duration(milliseconds: 500));
+            if (controller.value.isInitialized) {
+              await controller.dispose();
+              debugPrint('✅ Camera controller disposed on retry');
+            }
+          } catch (e2) {
+            debugPrint('❌ Failed to dispose controller after retry: $e2');
+            // Last resort - try one more time
+            try {
+              await Future.delayed(const Duration(milliseconds: 1000));
+              if (controller.value.isInitialized) {
+                await controller.dispose();
+              }
+            } catch (_) {
+              // Give up - controller will be garbage collected eventually
+            }
+          }
         }
       }
 
@@ -357,12 +386,18 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
       
       debugPrint('📤 Submitting report to Supabase: $reportData');
       
-      // Insert report into Supabase
+      // Insert report into Supabase with timeout
       final response = await supabase
           .from('reports')
           .insert(reportData)
           .select()
-          .single();
+          .single()
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw Exception('Request timed out. Please check your internet connection.');
+            },
+          );
       
       debugPrint('✅ Report submitted successfully: ${response['id']}');
       
@@ -376,9 +411,32 @@ class _RFDAReportScreenState extends State<RFDAReportScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      setState(() {
-        _error = 'Failed to send report: $e';
-      });
+      debugPrint('❌ Error sending report: $e');
+      
+      String errorMessage = 'Failed to send report. ';
+      
+      // Check for specific error types
+      final errorString = e.toString().toLowerCase();
+      
+      if (errorString.contains('socketexception') || 
+          errorString.contains('failed host lookup') ||
+          errorString.contains('no address associated') ||
+          errorString.contains('network') ||
+          errorString.contains('connection')) {
+        errorMessage += 'Please check your internet connection and try again.';
+      } else if (errorString.contains('timeout')) {
+        errorMessage += 'Request timed out. Please check your internet connection and try again.';
+      } else if (errorString.contains('permission') || errorString.contains('unauthorized')) {
+        errorMessage += 'Permission denied. Please check your app settings.';
+      } else {
+        errorMessage += 'Error: ${e.toString()}';
+      }
+      
+      if (mounted) {
+        setState(() {
+          _error = errorMessage;
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -899,6 +957,7 @@ class _CameraPreview extends StatefulWidget {
 class _CameraPreviewState extends State<_CameraPreview> {
   bool _isInitialized = false;
   bool _isDisposed = false;
+  bool _isCapturing = false;
 
   @override
   void initState() {
@@ -908,12 +967,14 @@ class _CameraPreviewState extends State<_CameraPreview> {
 
   Future<void> _checkInitialization() async {
     if (widget.controller.value.isInitialized) {
-      setState(() {
-        _isInitialized = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
     } else {
       // Wait a bit for initialization
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
       if (mounted && widget.controller.value.isInitialized) {
         setState(() {
           _isInitialized = true;
@@ -930,28 +991,76 @@ class _CameraPreviewState extends State<_CameraPreview> {
   }
 
   Future<void> _handleClose() async {
+    if (_isCapturing) return; // Don't close while capturing
     if (!_isDisposed && mounted) {
       Navigator.pop(context);
     }
   }
 
   Future<void> _handleCapture() async {
-    if (_isDisposed || !widget.controller.value.isInitialized) {
+    // Prevent multiple captures
+    if (_isCapturing || _isDisposed) {
+      return;
+    }
+
+    // Check controller state
+    if (!widget.controller.value.isInitialized) {
+      debugPrint('⚠️ Controller not initialized, cannot take picture');
       if (mounted) {
         Navigator.pop(context);
       }
       return;
     }
 
+    setState(() {
+      _isCapturing = true;
+    });
+
     try {
+      // Take picture with error handling
       final image = await widget.controller.takePicture();
+      
+      // Verify the image file exists and is readable
+      try {
+        final file = File(image.path);
+        if (await file.exists()) {
+          // Try to read a small portion to ensure file is fully written
+          await file.readAsBytes();
+        }
+      } catch (e) {
+        debugPrint('⚠️ Image file not ready: $e');
+        // Wait a bit more for file to be written
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+      
+      // Additional delay to ensure all camera operations are complete
+      await Future.delayed(const Duration(milliseconds: 200));
+      
       if (mounted && !_isDisposed) {
         Navigator.pop(context, image);
       }
-    } catch (e) {
-      debugPrint('Error taking picture: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error taking picture: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
       if (mounted && !_isDisposed) {
+        // Show error and close
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to capture photo. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        // Wait a bit before closing to show error
+        await Future.delayed(const Duration(milliseconds: 500));
         Navigator.pop(context);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCapturing = false;
+        });
       }
     }
   }
@@ -992,12 +1101,21 @@ class _CameraPreviewState extends State<_CameraPreview> {
             right: 0,
             child: Center(
               child: FloatingActionButton(
-                onPressed: _handleCapture,
-                backgroundColor: Colors.white,
-                child: const Icon(
-                  Icons.camera_alt,
-                  color: Colors.black,
-                ),
+                onPressed: _isCapturing ? null : _handleCapture,
+                backgroundColor: _isCapturing ? Colors.grey : Colors.white,
+                child: _isCapturing
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.camera_alt,
+                        color: Colors.black,
+                      ),
               ),
             ),
           ),

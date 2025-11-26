@@ -181,7 +181,7 @@ const Products = () => {
     
     // Use setTimeout to ensure formData is set before modal opens
     setTimeout(() => {
-      setShowModal(true)
+    setShowModal(true)
     }, 0)
   }
 

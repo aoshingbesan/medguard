@@ -49,5 +49,11 @@
 	<string>This app needs camera access to scan barcodes for medicine verification and take photos for RFDA reports.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs location access to report the location of unverified drugs to RFDA.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>maps</string>
+		<string>geo</string>
+	</array>
 </dict>
 </plist>
